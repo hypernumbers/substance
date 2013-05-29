@@ -1,3 +1,9 @@
+(function(root) {
+
+var sc = root.sc;
+var _ = root._;
+var Substance = root.Substance;
+
 sc.views.Editor = Substance.View.extend({
 
   id: 'container',
@@ -28,13 +34,15 @@ sc.views.Editor = Substance.View.extend({
   initialize: function() {
     var that = this;
 
+    this.session = this.model;
+
     // Setup shelf views
-    this.settings      = new sc.views.Settings({ model: this.model });
-    this.collaborators = new sc.views.Collaborators({ model: Substance.session, docView: this });
-    this["export"]     = new sc.views.Export({ model: this.model });
+    this.settings      = new sc.views.Settings({ model: this.session });
+    this.collaborators = new sc.views.Collaborators({ model: this.session, docView: this });
+    this["export"]     = new sc.views.Export({ model: this.session });
 
     // Publish Settings
-    this.publishSettings = new sc.views.PublishSettings({ model: Substance.session });
+    this.publishSettings = new sc.views.PublishSettings({ model: this.session });
 
     // Refresh publish state on demand
     this.publishSettings.on('publish_state:updated', function() {
@@ -51,10 +59,8 @@ sc.views.Editor = Substance.View.extend({
 
     this.$('.publish-settings').toggle();
 
-    var documentId = this.model.document.id;
-
     // Triggers a re-render
-    Substance.session.loadPublications(function(err) {
+    this.session.loadPublications(function() {
       that.renderPublishSettings();
     });
 
@@ -65,17 +71,16 @@ sc.views.Editor = Substance.View.extend({
     this.$('.publish-settings').hide();
   },
 
-  toggleSettings:      function (e) { this.toggleView('settings'); return false; },
-  toggleExport:        function (e) { this.toggleView('export'); return false; },
-  toggleCollaborators: function (e) {
+  toggleSettings:      function () { this.toggleView('settings'); return false; },
+  toggleExport:        function () { this.toggleView('export'); return false; },
+  toggleCollaborators: function () {
     var that = this;
-    Substance.session.loadCollaborators(function(err, collaborators) {
+    this.session.loadCollaborators(function() {
       that.toggleView('collaborators');
     });
     return false;
   },
-  toggleConsole: function (e) {
-    var that = this;
+  toggleConsole: function () {
 
     if (this.currentView === 'composer') {
       this.renderConsole();
@@ -87,14 +92,17 @@ sc.views.Editor = Substance.View.extend({
   },
 
   renderComposer: function() {
-    this.composer = new Substance.Composer({id: 'document_wrapper', model: this.model });
+    this.composer = new Substance.Composer({
+      id: 'document_wrapper',
+      model: this.session
+    });
     this.currentView = 'composer';
     this.$('#document_wrapper').replaceWith(this.composer.render().el);
     $('#console_wrapper').hide();
   },
 
   renderConsole: function() {
-    this.console = new Substance.Console({id: 'console_wrapper', model: this.model.document });
+    this.console = new Substance.Console({id: 'console_wrapper', model: this.session });
     this.currentView = 'console';
     this.$('#console_wrapper').replaceWith(this.console.render().el);
     $('#document_wrapper').hide();
@@ -122,8 +130,7 @@ sc.views.Editor = Substance.View.extend({
 
   toggleView: function (viewname) {
     var view = this[viewname];
-    var shelf   = this.$('#document_shelf .shelf-content'),
-        content = this.$('#document_content');
+    var shelf   = this.$('#document_shelf .shelf-content');
 
     if (this.currentView && this.currentView === view) return this.closeShelf();
 
@@ -138,8 +145,8 @@ sc.views.Editor = Substance.View.extend({
   },
 
   updateMessage: function() {
-    var state = this.model.publishState();
-    var doc = this.model.document;
+    var state = this.session.publishState();
+    var doc = this.session.document;
 
     if (state === 'published') {
       this.$('.publish-state .message').html($.timeago(doc.meta.published_at));
@@ -147,8 +154,8 @@ sc.views.Editor = Substance.View.extend({
   },
 
   updatePublishState: function() {
-    var state = this.model.publishState();
-    var doc = this.model.document;
+    var state = this.session.publishState();
+    var doc = this.session.document;
 
     this.$('.publish-state')
       .removeClass('published unpublished dirty')
@@ -175,22 +182,25 @@ sc.views.Editor = Substance.View.extend({
   render: function () {
     var that = this;
     this.$el.html(_.tpl('editor', {
-      session: this.model,
-      doc: this.model.document
+      session: this.session,
+      doc: this.session.document
     }));
 
     // Initial render of publish settings (empty)
     this.$('.publish-settings').html(this.publishSettings.render().el);
 
     // TODO: deconstructor-ish thing for clearing the interval when the view is no longer
-    clearInterval(window.leInterval);
-    window.leInterval = setInterval(function(){
+    clearInterval(root.leInterval);
+    root.leInterval = setInterval(function(){
       that.updateMessage();
     }, 1000);
 
     this.updatePublishState();
 
-    this.composer = new Substance.Composer({id: 'document_wrapper', model: this.model });
+    this.composer = new Substance.Composer({
+      id: 'document_wrapper',
+      model: this.session
+    });
     this.currentView = 'composer';
 
     that.$('#document_wrapper').replaceWith(that.composer.render().el);
@@ -205,3 +215,5 @@ sc.views.Editor = Substance.View.extend({
   }
 
 });
+
+})(this);

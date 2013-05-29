@@ -15,6 +15,7 @@ var Session = function(options) {
   // an instance id to analyze problems with
   this.__id__ = util.uuid();
   this.env = options.env;
+  this.chronicle = Substance.Chronicle.create(Substance.Chronicle.Index.create());
   this.initStores();
 };
 
@@ -50,12 +51,10 @@ Session.__prototype__ = function() {
       "client_secret": config.client_secret,
       "token": token
     });
-  }
+  };
 
   this.initStores = function() {
     var username = this.user();
-    var token = this.token();
-    var config = Substance.config();
     this.client = this.getClient();
 
     if (username) {
@@ -85,24 +84,21 @@ Session.__prototype__ = function() {
   // Create a new document locally
   // Schema is optional (currently only used by testsuite)
   this.createDocument = function(schema) {
-    var doc = new Substance.Document({
+    var document = new Substance.Document({
       id: Substance.util.uuid(),
       meta: {
         "creator": this.user(),
         "created_at": new Date()
       }
     }, schema);
-    var init = ["set", {title: "Untitled", abstract: "Enter abstract"}];
-    var cid = doc.apply(init, {silent: true});
-    var refs = {"master": {"head": cid, "last": cid}};
 
-    this.localStore.create(doc.id, {
-      meta: doc.meta,
-      commits: doc.commits,
-      refs: doc.refs
+    this.localStore.create(document.id, {
+      meta: document.meta,
+      commits: document.commits,
+      refs: document.refs
     });
 
-    this.document = new Session.Document(this, doc, schema);
+    this.document = new Session.Document(this, document, schema);
     this.initDoc();
   };
 
@@ -202,8 +198,6 @@ Session.__prototype__ = function() {
   };
 
   this.deletePublication = function(id, cb) {
-    var doc = this.document;
-
     var that = this;
     this.client.deletePublication(id, function(err) {
       if (err) return cb(err);
@@ -239,7 +233,7 @@ Session.__prototype__ = function() {
     this.client.createVersion(doc.id, data, function(err) {
       if (err) return cb(err);
       doc.meta.published_at = new Date();
-      doc.meta.published_commit = doc.getRef('head');
+      doc.meta.published_commit = that.chronicle.getState();
       doc.store.update({meta: doc.meta});
       that.loadPublications(cb);
     });
@@ -260,7 +254,7 @@ Session.__prototype__ = function() {
   this.publishState = function() {
     var doc = this.document;
     if (!doc.meta.published_commit) return "unpublished";
-    if (doc.getRef('head') === doc.meta.published_commit) return "published";
+    if (this.chronicle.getState() === doc.meta.published_commit) return "published";
     return "dirty";
   };
 
@@ -348,7 +342,6 @@ Session.__prototype__ = function() {
 
   // Delete collaborator on the server
   this.deleteCollaborator = function(collaborator, cb) {
-    var doc = this.document;
     var that = this;
     this.client.deleteCollaborator(collaborator, function(err) {
       if (err) return cb(err);
@@ -357,11 +350,11 @@ Session.__prototype__ = function() {
   };
 
   this.setProperty = function(key, val) {
-    appSettings.setItem(this.env+":"+key, val);
+    Substance.settings.setItem(this.env+":"+key, val);
   };
 
   this.getProperty = function(key) {
-    return appSettings.getItem(this.env+":"+key);
+    return Substance.settings.getItem(this.env+":"+key);
   };
 
   this.user = function() {
@@ -415,16 +408,16 @@ Session.__prototype__ = function() {
       var userStore = this.getUserStore(user);
       userStore.seed(seed);
     }, this);
-  }
+  };
 };
 
 Session.prototype = new Session.__prototype__();
 _.extend(Session.prototype, util.Events);
 
 Session.Document = function(session, document, schema) {
-  Substance.Document.call(this, document, schema);
+  Substance.VersionedDocument.call(this, session.chronicle, document, schema);
   this.store = new Session.DocumentStore(session, document.id);
-}
+};
 
 Session.Document.__prototype__ = function() {
 
@@ -437,34 +430,12 @@ Session.Document.__prototype__ = function() {
     // without triggering events
     var commit = __super__.apply.call(this, operation, _.extend({}, options, {"silent": true}));
 
-    if (!options['no-commit']) {
-      var refs = {
-        'master': {
-          'head': commit.sha,
-          'last': commit.sha
-        }
-      };
-      var options = {commits: [commit], refs: refs};
-      this.store.update(options);
-    }
-
     if(!options['silent']) {
       this.trigger('commit:applied', commit);
     }
   };
+};
 
-  // persists the new ref before triggering
-  this.setRef = function(ref, sha, silent) {
-    __super__.setRef.call(this, ref, sha, true);
-    if (!silent) {
-      var refs = {}
-      refs[ref] = sha;
-      var options = {refs: {"master": refs}}
-      this.store.update(options);
-      self.trigger('ref:updated', ref, sha);
-    }
-  };
-}
 // inherit the prototype of Substance.Document which extends util.Events
 Session.Document.__prototype__.prototype = Substance.Document.prototype;
 Session.Document.prototype = new Session.Document.__prototype__();
@@ -487,7 +458,7 @@ Session.DocumentStore.__prototype__ = function() {
   };
 
   this.commits = function(last, since) {
-    if (arguments.length == 0) return this.store.commits(this.id);
+    if (arguments.length === 0) return this.store.commits(this.id);
     return this.store.commits(this.id, {last: last, since: since});
   };
 
@@ -498,7 +469,7 @@ Session.DocumentStore.__prototype__ = function() {
     this.session.lazySync();
 
     return this.store.update(this.id, options);
-  }
+  };
 
   this.getRefs = function(branch) {
     return this.store.getRefs(this.id, branch);
@@ -551,10 +522,11 @@ _.extend(Substance.Comments.prototype, _.Events, {
     var node = this.session.node();
     this.scopes = [];
 
+    var content, annotations;
     if (node) {
       var nodeData = this.session.document.nodes[node];
-      var content = nodeData.content;
-      var annotations = this.session.document.find('annotations', node);
+      content = nodeData.content;
+      annotations = this.session.document.find('annotations', node);
     }
     this.commentsForNode(this.session.document, node, content, annotations, scope);
   },
@@ -564,7 +536,7 @@ _.extend(Substance.Comments.prototype, _.Events, {
     var node = this.session.node();
 
     // Only consider markers as comment scopes
-    var annotations = _.filter(annotations, function(a) {
+    annotations = _.filter(annotations, function(a) {
       return _.include(["idea", "question", "error"], a.type);
     });
 

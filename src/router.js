@@ -1,5 +1,7 @@
 var Router = Backbone.Router.extend({
   initialize: function() {
+    var app = Substance.app;
+
     // Using this.route, because order matters
     this.route(':document', 'loadDocument', this.loadDocument);
     this.route('demo/:document', 'loadDocument', this.loadDocument);
@@ -16,10 +18,10 @@ var Router = Backbone.Router.extend({
   },
 
   newDocument: function() {
-    app.newDocument();
+    Substance.app.newDocument();
   },
 
   loadDocument: function(id) {
-    app.document(id);
+    Substance.app.document(id);
   }
 });

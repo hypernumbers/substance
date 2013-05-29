@@ -1,4 +1,9 @@
-sc.views.Node.define('heading', _.extend(Textish, {
+(function(root) { "use_strict";
+
+var _ = root._;
+var sc = root.sc;
+
+sc.views.Node.define('heading', _.extend(sc.views.Textish, {
 
   className: 'content-node heading',
 
@@ -27,7 +32,7 @@ sc.views.Node.define('heading', _.extend(Textish, {
   },
 
   // DO WE NEED THIS?
-  initialize: function (options) {
+  initialize: function () {
     sc.views.Node.prototype.initialize.apply(this, arguments);
   },
 
@@ -40,3 +45,5 @@ sc.views.Node.define('heading', _.extend(Textish, {
     return this;
   }
 }));
+
+})(this);

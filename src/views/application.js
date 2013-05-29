@@ -1,3 +1,16 @@
+(function(root) { "use_strict";
+
+  // Import
+  // ========
+
+  var _ = root._;
+  var Substance = root.Substance;
+  var sc = root.sc;
+  var key = root.key;
+
+  // Implementation
+  // ========
+
   // The Mothership
   // ---------------
 
@@ -14,14 +27,15 @@
       'click .user-actions': '_hideUserActions'
     },
 
-    initialize: function(options) {
-      var that = this;
+    initialize: function() {
+      this.session = this.model;
+
       _.bindAll(this, 'document', 'dashboard', 'login', 'signup',
                       'console', 'testsuite', 'replicationStart',
                       'replicationFinish');
 
-      Substance.session.on('replication:started', this.replicationStart);
-      Substance.session.on('replication:finished', this.replicationFinish);
+      this.session.on('replication:started', this.replicationStart);
+      this.session.on('replication:finished', this.replicationFinish);
 
       this.registerKeyBindings();
     },
@@ -43,7 +57,7 @@
     _loadEnvironment: function(e) {
       var env = $(e.currentTarget).attr('data-env');
       appSettings.setItem('env', env);
-      initSession(env);
+      Substance.initSession(env);
       this.dashboard();
     },
 
@@ -53,7 +67,7 @@
 
     // Synchronizing
     _sync: function() {
-      Substance.session.replicate();
+      this.session.replicate();
       return false;
     },
 
@@ -62,7 +76,7 @@
           username = $('#login_username').val(),
           password = $('#login_password').val();
 
-      Substance.session.authenticate(username, password, function(err, data) {
+      this.session.authenticate(username, password, function(err) {
         if (err) {
           that.$('#login .error-message').html(err);
           return;
@@ -83,7 +97,7 @@
             password: $('#signup_password').val()
           };
 
-      Substance.session.createUser(user, function(err, data) {
+      this.session.createUser(user, function(err) {
         if (err) {
           that.$('#login .error-message').html(err);
           return;
@@ -97,7 +111,7 @@
     },
 
     _logout: function() {
-      Substance.session.logout();
+      this.session.logout();
       this.render();
 
       // Show login screen
@@ -118,7 +132,7 @@
         // Update status
         if (err) this.$('#header .sync').removeClass('disabled').addClass('error');
 
-        // HACK: only re-render after sync when on dashboard
+        // only re-render after sync when on dashboard
         if (that.view instanceof sc.views.Dashboard) {
           that.render();
         }
@@ -128,14 +142,12 @@
 
     // Toggle document view
     document: function(id) {
-      var that = this;
-      Substance.session.loadDocument(id);
-      // Shortcuts
-      window.doc = Substance.session.document;
+      this.session.loadDocument(id);
+
       if (this.view) this.view.dispose();
-      that.view = new sc.views.Editor({model: Substance.session});
-      that.render();
-      that.listenForDocumentChanges();
+      this.view = new sc.views.Editor({ model: this.session });
+      this.render();
+      this.listenForDocumentChanges();
     },
 
     // Toggle document view
@@ -145,7 +157,6 @@
       Substance.session.loadDocument(id);
 
       // Shortcuts
-      window.doc = Substance.session.document;
       if (this.view) this.view.dispose();
       that.view = new sc.views.Console({model: Substance.session});
       that.render();
@@ -181,15 +192,15 @@
     // ---------------
 
     newDocument: function() {
-      var s = Substance.session;
-      s.createDocument();
+      var session = Substance.session;
+      session.createDocument();
       if (this.view) this.view.dispose();
-      this.view = new sc.views.Editor({model: s });
+      this.view = new sc.views.Editor({ model: session });
       this.render();
-      router.navigate('documents/'+s.document.id, false);
+      Substance.router.navigate('documents/'+session.document.id, false);
 
       // Shortcuts
-      window.doc = s.document;
+      //window.doc = session.document;
 
       this.listenForDocumentChanges();
     },
@@ -200,7 +211,7 @@
       if (this.view) this.view.dispose();
       this.view = new sc.views.Dashboard();
       this.render();
-      router.navigate('/');
+      Substance.router.navigate('/');
       return;
     },
 
@@ -336,5 +347,22 @@
       key('shift+⌘+z', _.bind(function(e) {
         this.trigger('message:redo', e);
       }, this));
+
+      // Other
+      // --------
+
+      // Trigger sync with hub
+      key('ctrl+alt+s', _.bind(function() {
+        this._sync();
+        return false;
+      }, this));
+
     }
   });
+
+  // Export
+  // ========
+
+  Substance.Application = Application;
+
+})(this);

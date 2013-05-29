@@ -1,21 +1,32 @@
-Substance.View = function(options) {
+(function(root) { "use_strict";
 
-  // Construction
+var Substance = root.Substance;
+var _ = root._;
+var Backbone = root.Backbone;
 
+var View = function(options) {
   Backbone.View.apply(this, [options]);
-  var proto = Substance.util.prototype(this);
+
+  // Initialization
+  this._bindings = [];
+  this.delegateMessages();
+  this.delegateBindings();
+};
+
+View.__prototype__ = function() {
 
   // Delegats global messags based on spec
-  proto.delegateMessages = function() {
+  this.delegateMessages = function() {
+
     _.each(this.messages, function(handler, message) {
-      app.bind('message:'+message, this[handler], this);
+      Substance.app.bind('message:'+message, this[handler], this);
       // Register binding for later disposal
-      this._bindings.push([app, 'message:'+message, this[handler]]);
+      this._bindings.push([Substance.app, 'message:'+message, this[handler]]);
     }, this);
   };
 
   // Delegate bindings as speced
-  proto.delegateBindings = function() {
+  this.delegateBindings = function() {
     _.each(this.bindings, function(binding) {
       var props = binding[0].split('.');
       var eventName = binding[1];
@@ -33,8 +44,8 @@ Substance.View = function(options) {
     }, this);
   };
 
-  // // Unbind handlers
-  proto.disposeBindings = function() {
+  // Unbind handlers
+  this.disposeBindings = function() {
     _.each(this._bindings, function(b) {
       var target = b[0];
       var eventName= b[1];
@@ -43,12 +54,13 @@ Substance.View = function(options) {
       target.unbind(eventName, handler);
     });
   };
-
-  // Initialization
-  this._bindings = [];
-  this.delegateMessages();
-  this.delegateBindings();
 };
 
-Substance.View.prototype = Backbone.View.prototype;
-Substance.View.extend = Backbone.View.extend;
+View.__prototype__.prototype = Backbone.View.prototype;
+View.prototype = new View.__prototype__();
+View.extend = Backbone.View.extend;
+
+
+Substance.View = View;
+
+})(this);

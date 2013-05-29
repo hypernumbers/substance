@@ -1,3 +1,9 @@
+(function(root) { "use_strict";
+
+var sc = root.sc;
+var Substance = root.Substance;
+var _ = root._;
+
 sc.views.DocumentTool = Substance.View.extend({
 
   // Events
@@ -9,7 +15,10 @@ sc.views.DocumentTool = Substance.View.extend({
 
   _toggleTool: function(e) {
     var viewName = $(e.currentTarget).attr('data-view');
-    this.views.tool = new sc.views[viewName]({model: this.model});
+    this.views.tool = new sc.views[viewName]({
+      model: this.session,
+      session: this.session
+    });
     this.$('.tool').html(this.views.tool.render().el);
     $('.navigation .toggle-tool').removeClass('active');
     $(e.currentTarget).addClass('active');
@@ -20,16 +29,16 @@ sc.views.DocumentTool = Substance.View.extend({
   // --------
 
   initialize: function(options) {
-    this.documentView = options.documentView;
+    this.session = this.model;
 
+    this.documentView = options.documentView;
     // Views
     this.views = {};
-
-    this.views.tool = new sc.views.Comments({model: this.model});
+    this.views.tool = new sc.views.Comments({ model: this.session });
   },
 
   render: function() {
-    this.$el.html(_.tpl('tools', this.model));
+    this.$el.html(_.tpl('tools', this.session));
     this.$('.tool').html(this.views.tool.render().el);
     return this;
   }
@@ -55,6 +64,7 @@ sc.views.Tools = Substance.View.extend({
   // --------
 
   initialize: function(options) {
+    this.session = this.model;
     this.documentView = options.documentView;
 
     // Views
@@ -67,23 +77,23 @@ sc.views.Tools = Substance.View.extend({
 
   // Toggle document outline
   outline: function() {
-    this.views.tool = new sc.views.Outline({model: this.model});
+    this.views.tool = new sc.views.Outline({model: this.session});
   },
 
   // Toggle patches view
   patches: function() {
-    this.views.tool = new sc.views.Patches({model: this.model});
+    this.views.tool = new sc.views.Patches({model: this.session});
   },
 
   // Toggle document history
   history: function() {
-    this.views.tool = new sc.views.History({model: this.model});
+    this.views.tool = new sc.views.History({model: this.session});
   },
 
   // Toggle comments
   comments: function() {
     this.views.tool = new sc.views.Comments({
-      model: this.model
+      model: this.session
     });
   },
 
@@ -95,7 +105,7 @@ sc.views.Tools = Substance.View.extend({
   },
 
   render: function() {
-    this.$el.html(_.tpl('tools', _.extend(this.model, {view: this.view})));
+    this.$el.html(_.tpl('tools', _.extend(this.session, {view: this.view})));
     this.$('.tool').html(this.views.tool.render().el);
     return this;
   },
@@ -106,3 +116,5 @@ sc.views.Tools = Substance.View.extend({
     this.views.tool.dispose();
   }
 });
+
+})(this);

@@ -1,13 +1,20 @@
+(function(root) { "use_strict";
+
+var Substance = root.Substance;
+var _ = root._;
+var sc = root.sc;
+
 // Textish
 // ----------
-// 
+//
 // Shared for all text-ish content types (such as text and header)
 
-Textish = {
+var Textish = {
+
   // Initialize Surface
   initSurface: function() {
     var that = this;
-    var annos = app.view.model.document.find('annotations', this.model.id);
+    var annos = Substance.app.view.model.document.find('annotations', this.model.id);
 
     var annotations = {};
 
@@ -26,7 +33,7 @@ Textish = {
 
     // Events
     // ------
-  
+
     // Hackish way preventing node selection to be triggered two times
     this.$('.content').click(function() {
       return false;
@@ -38,7 +45,7 @@ Textish = {
     //   // that.removeToggles();
     // });
 
-    this.surface.on('surface:active', function(sel) {
+    this.surface.on('surface:active', function() {
       that.session.select([that.model.id], { edit: true });
     });
 
@@ -46,13 +53,17 @@ Textish = {
       var marker = that.surface.getAnnotations(sel, ["idea", "question", "error"])[0];
 
       if (marker) {
-        router.trigger('comment-scope:selected', marker.id, that.model.id, marker.id);
+        Substance.router.trigger('comment-scope:selected', marker.id, that.model.id, marker.id);
         that.surface.highlight(marker.id);
       } else {
-        router.trigger('comment-scope:selected', 'node_comments', that.model.id, null);
+        Substance.router.trigger('comment-scope:selected', 'node_comments', that.model.id, null);
         that.surface.highlight(null);
       }
-      sel[1] > 0 ? that.renderToggles(sel) : that.removeToggles();
+      if (sel[1] > 0) {
+        that.renderToggles(sel);
+      } else {
+        that.removeToggles();
+      }
     }
 
     // Update comments panel according to marker context
@@ -83,7 +94,7 @@ Textish = {
   updateLink: function(e) {
     var annotation = $(e.currentTarget).attr('data-id');
     var url = $(e.currentTarget).val();
-  
+
     this.surface.updateAnnotation({
       id: annotation,
       url: url
@@ -107,10 +118,11 @@ Textish = {
 
     if (!sel) return;
 
+    var types;
     if (_.include(["emphasis", "strong", "code", "link"], type)) {
-      var types = ["emphasis", "strong", "code", "link"];
+      types = ["emphasis", "strong", "code", "link"];
     } else {
-      var types = ["idea", "question", "error"];
+      types = ["idea", "question", "error"];
     }
 
     var a = this.surface.getAnnotations(sel, types)[0];
@@ -125,14 +137,14 @@ Textish = {
       if (start <= aStart && end >= aEnd) {
         // Full overlap
         if (a.type === type) {
-          this.surface.deleteAnnotation(a.id);  
+          this.surface.deleteAnnotation(a.id);
         } else {
           console.log('turning ', a.type, 'into ', type);
           this.surface.updateAnnotation({
             id: a.id,
             type: type
           });
-          router.trigger('comment-scope:selected', a.id, this.model.id, a.id);
+          Substance.router.trigger('comment-scope:selected', a.id, this.model.id, a.id);
         }
       } else {
         if (start <= aStart) {
@@ -185,9 +197,9 @@ Textish = {
     this.surface.insertAnnotation(data);
 
     if (_.include(["emphasis", "strong", "code", "link"], type)) return; // skip comment-scope selection
-    router.trigger('comment-scope:selected', id, this.model.id, id);
+    Substance.router.trigger('comment-scope:selected', id, this.model.id, id);
   },
-  
+
   removeToggles: function() {
     $('.annotation-tools').hide();
   },
@@ -214,7 +226,7 @@ Textish = {
         link = {
           url: anns[0].url,
           id: anns[0].id
-        }
+        };
       }
     });
 
@@ -229,7 +241,7 @@ Textish = {
     if (pos) {
       pos.left -= 110;
       pos.top -= 54;
-      this.$('.annotation-tools').css(pos);      
+      this.$('.annotation-tools').css(pos);
     }
   },
   dispose: function() {
@@ -237,3 +249,7 @@ Textish = {
     this.disposeBindings();
   }
 };
+
+sc.views.Textish = Textish;
+
+})(this);

@@ -1,3 +1,9 @@
+(function(root) {
+
+var sc = root.sc;
+var Substance = root.Substance;
+var _ = root._;
+
 sc.views.Document = Substance.View.extend({
   id: 'document',
 
@@ -14,11 +20,14 @@ sc.views.Document = Substance.View.extend({
   // Handlers
   // --------
 
-  initialize: function(options) {
+  initialize: function() {
     var that = this;
 
+    this.session = this.model;
+    this.document = this.session.document;
+
     // Delegate update operations
-    this.model.document.on('commit:applied', function(commit) {
+    this.document.on('commit:applied', function(commit) {
       switch(commit.op[0]) {
         case "move": that.move(commit.op[1]); break;
         case "insert": that.insert(commit.op[1]); break;
@@ -30,14 +39,15 @@ sc.views.Document = Substance.View.extend({
 
     // Handlers
     function highlightAnnotation(scope, node, annotation) {
-      var a = this.model.document.nodes[annotation];
+      var a = this.document.nodes[annotation];
 
       if (a) {
         $('#'+_.htmlId(node)+' .handle-2').removeClass().addClass('handle-2').addClass(a.type);
       } else {
         $('#'+_.htmlId(node)+' .handle-2').removeClass().addClass('handle-2');
       }
-      var node = this.nodes[node];
+
+      node = this.nodes[node];
       if (node && node.surface) {
         node.surface.highlight(annotation);
       }
@@ -45,7 +55,7 @@ sc.views.Document = Substance.View.extend({
 
     // Delete Annotation
     function deleteAnnotation(node, annotation) {
-      var node = this.nodes[node];
+      node = this.nodes[node];
       if (node && node.surface) node.surface.deleteAnnotation(annotation);
     }
 
@@ -61,17 +71,17 @@ sc.views.Document = Substance.View.extend({
     }
 
     // Bind handlers (but only once)
-    router.off('comment-scope:selected', highlightAnnotation);
-    router.on('comment-scope:selected', highlightAnnotation, this);
+    Substance.router.off('comment-scope:selected', highlightAnnotation);
+    Substance.router.on('comment-scope:selected', highlightAnnotation, this);
 
-    router.off('annotation:deleted', deleteAnnotation);
-    router.on('annotation:deleted', deleteAnnotation, this);
+    Substance.router.off('annotation:deleted', deleteAnnotation);
+    Substance.router.on('annotation:deleted', deleteAnnotation, this);
 
-    router.off('node:dirty', updateNode);
-    router.on('node:dirty', updateNode, this);
+    Substance.router.off('node:dirty', updateNode);
+    Substance.router.on('node:dirty', updateNode, this);
 
-    this.model.off('node:selected', this.updateSelections);
-    this.model.on('node:selected', this.updateSelections, this);
+    this.session.off('node:selected', this.updateSelections);
+    this.session.on('node:selected', this.updateSelections, this);
     this.build();
 
     $(document.body).keydown(this.onKeydown);
@@ -121,7 +131,7 @@ sc.views.Document = Substance.View.extend({
         }
         canvas.width = width;
         canvas.height = height;
-        var ctx = canvas.getContext("2d");
+        ctx = canvas.getContext("2d");
         ctx.drawImage(img, 0, 0, width, height);
 
         var mediumImage = canvas.toDataURL("image/png");
@@ -130,8 +140,8 @@ sc.views.Document = Substance.View.extend({
         var largeImageId = Substance.util.uuid();
 
 
-        if (!Substance.session.localStore.createBlob(that.model.document.id, mediumImageId, mediumImage) ||
-            !Substance.session.localStore.createBlob(that.model.document.id, largeImageId, largeImage)) {
+        if (!this.session.localStore.createBlob(that.model.document.id, mediumImageId, mediumImage) ||
+            !this.session.localStore.createBlob(that.model.document.id, largeImageId, largeImage)) {
           throw new Substance.errors.Error('Storing images failed');
         }
 
@@ -143,7 +153,7 @@ sc.views.Document = Substance.View.extend({
         that.render(); // re-render the shit out of it
 
       }, 800);
-    }
+    };
 
     reader.readAsDataURL(file);
   },
@@ -159,10 +169,10 @@ sc.views.Document = Substance.View.extend({
 
   // Get a particular node by id
   getNode: function(id) {
-    return this.model.document.nodes[id];
+    return this.document.nodes[id];
   },
 
-  set: function(options) {
+  set: function() {
     this.initSurface("abstract");
     this.initSurface("title");
   },
@@ -170,7 +180,7 @@ sc.views.Document = Substance.View.extend({
   insert: function(options) {
     var node = this.getNode(options.id);
 
-    var types = this.model.document.getTypes(node.type);
+    var types = this.document.getTypes(node.type);
     if (types[0] !== "content") return; // skip non-content nodes
 
     var view = this.createNodeView(node);
@@ -181,7 +191,7 @@ sc.views.Document = Substance.View.extend({
     if (options.target && options.target !== "back") {
       newEl.insertAfter($('#'+_.htmlId(options.target)));
     } else {
-      this.$('.nodes').append(newEl)
+      this.$('.nodes').append(newEl);
     }
     newEl.click();
     newEl.find('.content').focus();
@@ -189,13 +199,13 @@ sc.views.Document = Substance.View.extend({
 
   // Node content has been updated
   update: function(options) {
-    var types = this.model.document.getTypes(this.getNode(options.id).type);
+    var types = this.document.getTypes(this.getNode(options.id).type);
     if (types[0] !== "content") return; // skip non-content nodes
 
     var node = this.nodes[options.id];
 
     // Only rerender if not update comes from outside
-    if (this.model.node() !== options.id) {
+    if (this.session.node() !== options.id) {
       node.render();
     }
   },
@@ -208,12 +218,12 @@ sc.views.Document = Substance.View.extend({
       // view.dispose();
       // delete this.nodes[node];
     }, this);
-    this.model.select([]);
+    this.session.select([]);
   },
 
   build: function() {
     this.nodes = {};
-    this.model.document.each(function(node) {
+    this.document.each(function(node) {
       this.nodes[node.id] = this.createNodeView(node);
     }, this);
   },
@@ -222,7 +232,7 @@ sc.views.Document = Substance.View.extend({
   // --------
 
   insertNode: function(type, options) {
-    var selection = this.model.users[this.model.user()].selection;
+    var selection = this.session.users[this.session.user()].selection;
     var target = options.target || _.last(selection) || 'back';
     var properties = {};
 
@@ -230,7 +240,7 @@ sc.views.Document = Substance.View.extend({
 
     if (type === "heading") properties["level"] = 1;
 
-    this.model.document.apply(["insert", {
+    this.document.apply(["insert", {
       "id": Substance.util.uuid(type+':', 8),
       "type": type,
       "target": target,
@@ -239,10 +249,10 @@ sc.views.Document = Substance.View.extend({
   },
 
   deleteNodes: function() {
-    this.model.document.apply(["delete", {
-      "nodes": this.model.selection()
+    this.document.apply(["delete", {
+      "nodes": this.session.selection()
     }], {
-      user: this.model.user()
+      user: this.session.user()
     });
   },
 
@@ -263,18 +273,18 @@ sc.views.Document = Substance.View.extend({
   // Set the right mode
   // REWORK
   updateMode: function() {
-    var selection = this.model.selection();
+    var selection = this.session.selection();
     $('#document').removeClass();
 
     if (selection.length) {
-      $('#document').addClass(this.model.edit ? 'edit-mode' : 'structure-mode');
+      $('#document').addClass(this.session.edit ? 'edit-mode' : 'structure-mode');
     } else {
       $('#document').addClass('document-mode');
     }
 
     // Render context bar
     this.$('#context_bar').html(_.tpl('context_bar', {
-      level: this.model.level(),
+      level: this.session.level(),
       // TODO: Use Plugin System!
       node_types: [
         { name: "Heading", type: "heading" },
@@ -286,7 +296,7 @@ sc.views.Document = Substance.View.extend({
   },
 
   // Updates the current selection
-  updateSelections: function(selections) {
+  updateSelections: function() {
     // $('.content-node .down').hide();
     // $('.content-node .up').hide();
     // $('.content-node .delete').hide();
@@ -297,7 +307,7 @@ sc.views.Document = Substance.View.extend({
 
     this.updateMode();
 
-    _.each(this.model.selections, function(user, node) {
+    _.each(this.session.selections, function(user, node) {
       $('#'+_.htmlId(node)).addClass('selected');
     }, this);
 
@@ -310,57 +320,57 @@ sc.views.Document = Substance.View.extend({
   // --------
 
   selectNext: function() {
-    var selection = this.model.users[this.model.user()].selection;
-    var doc = this.model.document;
-    if (selection.length === 0) return this.model.select([_.first(doc.views.content)]);
+    var selection = this.session.users[this.session.user()].selection;
+    var doc = this.document;
+    if (selection.length === 0) return this.session.select([_.first(doc.views.content)]);
     var next = doc.getSuccessor(_.last(selection));
-    if (next) return this.model.select([next]);
+    if (next) return this.session.select([next]);
   },
 
   selectPrev: function() {
-    var selection = this.model.users[this.model.user()].selection;
-    var doc = this.model.document;
-    if (selection.length === 0) return this.model.select([_.last(doc.views.content)]);
+    var selection = this.session.users[this.session.user()].selection;
+    var doc = this.document;
+    if (selection.length === 0) return this.session.select([_.last(doc.views.content)]);
     var prev = doc.getPredecessor(_.first(selection));
-    return this.model.select(prev ? [prev] : [_.first(doc.views.content)]);
+    return this.session.select(prev ? [prev] : [_.first(doc.views.content)]);
   },
 
   expandSelection: function() {
-    var selection = this.model.users[this.model.user()].selection;
+    var selection = this.session.users[this.session.user()].selection;
     var lastnode = _.last(selection);
-    var doc = this.model.document;
+    var doc = this.document;
 
     if (lastnode) {
       var next = doc.getSuccessor(lastnode);
       if (next) {
-        this.model.select(selection.concat([next]));
+        this.session.select(selection.concat([next]));
       }
     }
   },
 
   narrowSelection: function() {
-    var selection = this.model.users[this.model.user()].selection;
-    this.model.select(_.clone(selection).splice(0, selection.length-1));
+    var selection = this.session.users[this.session.user()].selection;
+    this.session.select(_.clone(selection).splice(0, selection.length-1));
   },
 
   moveDown: function() {
-    var selection = this.model.users[this.model.user()].selection;
+    var selection = this.session.users[this.session.user()].selection;
     var last = this.getNode(_.last(selection));
-    var successor = this.model.document.getSuccessor(last.id);
+    var successor = this.document.getSuccessor(last.id);
 
     if (successor) {
-      this.model.document.apply(["move", {
+      this.document.apply(["move", {
         "nodes": selection, "target": successor
       }], {
-        user: this.model.user()
+        user: this.session.user()
       });
     }
   },
 
   moveUp: function() {
-    var selection = this.model.users[this.model.user()].selection;
+    var selection = this.session.users[this.session.user()].selection;
     var first = this.getNode(_.first(selection));
-    var doc = this.model.document;
+    var doc = this.document;
 
     var pos = doc.position(first.id);
     var pred = doc.getPredecessor(first.id);
@@ -372,15 +382,15 @@ sc.views.Document = Substance.View.extend({
       doc.apply(["move", {
         "nodes": selection, "target": target
       }], {
-        user: this.model.user()
+        user: this.session.user()
       });
     }
   },
 
   createNodeView: function(node) {
     return sc.views.Node.create({
-      session: this.model,
-      document: this.model.document,
+      session: this.session,
+      document: this.session.document,
       model: node
     });
   },
@@ -389,7 +399,7 @@ sc.views.Document = Substance.View.extend({
     // Skip when move handle has been clicked
     if ($(e.target).hasClass('move')) return;
     var id = $(e.currentTarget)[0].id.replace(/_/g, ":");
-    this.model.select([id]);
+    this.session.select([id]);
   },
 
   initSurface: function(property) {
@@ -443,3 +453,5 @@ sc.views.Document = Substance.View.extend({
   }
 
 });
+
+})(this);

@@ -1,4 +1,9 @@
-sc.views.Node.define('text', _.extend(Textish, {
+(function(root) { "use_strict";
+
+var _ = root._;
+var sc = root.sc;
+
+sc.views.Node.define('text', _.extend(sc.views.Textish, {
 
   className: 'content-node text',
 
@@ -49,7 +54,7 @@ sc.views.Node.define('text', _.extend(Textish, {
     'click .annotation-tools': function() { return false; },
   },
 
-  initialize: function (options) {
+  initialize: function () {
     sc.views.Node.prototype.initialize.apply(this, arguments);
   },
 
@@ -64,3 +69,5 @@ sc.views.Node.define('text', _.extend(Textish, {
     return this;
   }
 }));
+
+})(this);

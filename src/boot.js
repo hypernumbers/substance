@@ -1,7 +1,13 @@
-$(function() {
+// Gets called when the DOM is ready
+$(function() { "use_strict";
 
-  // Holds all available configurations
-  Substance.configurations = {};
+  var root = window;
+  var Substance = root.Substance;
+  var Backbone = root.Backbone;
+  var Router = root.Router;
+
+  // All singleton variables are in this file
+  // TODO: make this true
 
   // Load config from config.json
   function loadConfigurations(cb) {
@@ -11,36 +17,41 @@ $(function() {
       cb(null, data);
     })
     .error(function() {
-      cb('not_found: using defaults'); 
+      cb('not_found: using defaults');
     });
   }
 
-  Substance.config = function() {
-    var env = appSettings.getItem('env');
-    return Substance.configurations[env];
-  };
+  if(typeof redis === 'undefined') {
+    Substance.client_type = "browser";
+  } else {
+    Substance.client_type = "native";
+  }
+
+  if (Substance.client_type === "browser") {
+    Substance.settings = new Substance.WebAppSettings();
+  } else {
+    Substance.settings = new Substance.NativeAppSettings();
+  }
 
   loadConfigurations(function(err, configs) {
     Substance.configurations = JSON.parse(JSON.stringify(configs));
     delete Substance.configurations.env;
 
     // Initially set env based on config value
-    if (!appSettings.getItem('env')) {
-      appSettings.setItem('env', configs.env || 'development');
+    if (!Substance.settings.getItem('env')) {
+      Substance.settings.setItem('env', configs.env || 'development');
     }
 
-    initSession(appSettings.getItem('env'));
+    Substance.initSession(Substance.settings.getItem('env'));
 
     // Start the engines
-    window.app = new Application({el: 'body'});
-    window.router = new Router({});
-    Backbone.history.start();
+    Substance.app = new Substance.Application({
+      el: 'body',
+      model: Substance.session
+    });
+    Substance.router = new Router({});
 
-    // Trigger sync with hub
-    key('ctrl+alt+s', _.bind(function() {
-      app._sync();
-      return false;
-    }, this));
+    Backbone.history.start();
   });
 
 });

@@ -1,13 +1,15 @@
+(function(root) {
+
+var Substance = root.Substance;
+var _ = root._;
+
 // AppSettings
 // -----------------
 //
 // Persistence for application settings
 
-// TODO: switch between native and web-client version:
-// web -> localstoreage, native->
-
-// TODO: Make localStorage work
 var NativeAppSettings = function(settings) {
+  var redis = root.redis;
   var dbSettings = {
     host: "127.0.0.1",
     port: 6379,
@@ -42,7 +44,8 @@ var NativeAppSettings = function(settings) {
   };
 };
 
-var WebAppSettings = function(settings) {
+var WebAppSettings = function() {
+  var localStorage = root.localStorage;
 
   this.setItem = function(key, value) {
     localStorage.setItem(key, JSON.stringify(value));
@@ -63,37 +66,7 @@ var WebAppSettings = function(settings) {
   };
 };
 
-if (Substance.client_type === "browser") {
-  window.appSettings = new WebAppSettings();
-} else {
-  window.appSettings = new NativeAppSettings();
-}
+Substance.NativeAppSettings = NativeAppSettings;
+Substance.WebAppSettings = WebAppSettings;
 
-// Helpers
-// -----------------
-
-function published(doc) {
-  return !!doc.meta.published_commit;
-}
-
-// Initialization
-// -----------------
-
-function initSession(env) {
-  Substance.session = new Substance.Session({env: env});
-}
-
-// TODO: Find a better place
-if (typeof Substance.test === 'undefined') Substance.test = {};
-
-Substance.test.createDump = function() {
-  // TODO: Iterate over all exisiting scopes
-  var scopes = ["michael", "oliver", "admin"];
-  var dump = {};
-
-  _.each(scopes, function(scope) {
-    var store = new Substance.RedisStore({scope: scope});
-    dump[scope] = store.dump();
-  });
-  return dump;
-}
+})(this);

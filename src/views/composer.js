@@ -2,6 +2,7 @@
 
   // The Substance Namespace
   if (!exports.Substance) exports.Substance = {};
+  var Substance = exports.Substance;
 
   var Composer = Substance.View.extend({
 
@@ -48,8 +49,8 @@
     // Select next node
     _selectNext: function(e) {
       // If in selection/structure mode
-      if (this.model.level() <= 2) {
-        var cont = this.views.document.selectNext();
+      if (this.session.level() <= 2) {
+        this.views.document.selectNext();
         // stop propageting the key events
         e.preventDefault();
       }
@@ -58,7 +59,7 @@
     // Select previous node
     _selectPrevious: function(e) {
       // If in selection/structure mode
-      if (this.model.level() <= 2) {
+      if (this.session.level() <= 2) {
         this.views.document.selectPrev();
         // stop propageting the key events
         e.preventDefault();
@@ -67,7 +68,7 @@
 
     // Move current selection down by one
     _moveDown: function(e) {
-      if (this.model.level() === 2) {
+      if (this.session.level() === 2) {
         this.views.document.moveDown();
         e.preventDefault();
       }
@@ -75,7 +76,7 @@
 
     // Move current selection up by one
     _moveUp: function(e) {
-      if (this.model.level() === 2) {
+      if (this.session.level() === 2) {
         this.views.document.moveUp();
         e.preventDefault();
       }
@@ -83,10 +84,10 @@
 
     // Go up one level
     _goBack: function(e) {
-      var lvl = this.model.level();
+      var lvl = this.session.level();
       if (lvl === 2) return this.clear();
 
-      this.model.edit = false;
+      this.session.edit = false;
       // TODO: Only deactivate currently active surface -> performance
       $(".content-node .content").blur();
       this.updateMode();
@@ -96,7 +97,7 @@
     // Current select + next element
     _expandSelection: function(e) {
       // Structure mode
-      if (this.model.level() === 2) {
+      if (this.session.level() === 2) {
         this.views.document.expandSelection();
         e.preventDefault();
       }
@@ -104,7 +105,7 @@
 
     // Current select - last element
     _narrowSelection: function(e) {
-      if (this.model.level() === 2) {
+      if (this.session.level() === 2) {
         this.views.document.narrowSelection();
         e.preventDefault();
       }
@@ -114,7 +115,7 @@
     _breakText: function(e) {
       var that = this;
 
-      if (this.model.level() === 3) {
+      if (this.session.level() === 3) {
         var selectedNode = _.first(this.model.selection());
         var node = this.views.document.nodes[selectedNode];
 
@@ -135,7 +136,7 @@
           if(sel) {
             var pos = sel[0]; // current cursor position
             var remainder = _.rest(text, pos).join("");
-            var newContent = text.substr(0, pos);
+            // var newContent = text.substr(0, pos);
             node.surface.deleteRange([pos, remainder.length]);
             node.surface.commit();
             that.views.document.insertNode("text", {content: remainder, target: node.model.id});
@@ -149,7 +150,7 @@
 
     // Delete currently selected nodes
     _deleteNode: function(e) {
-      if (this.model.level() === 2) {
+      if (this.session.level() === 2) {
         this.views.document.deleteNodes();
         e.preventDefault();
       }
@@ -163,33 +164,32 @@
 
     // Toggle annotation for given selection
     _toggleAnnotation: function(e, type) {
-      if (this.model.level() === 3) {
+      if (this.session.level() === 3) {
         var node = this.views.document.nodes[this.model.selection()[0]];
         node.annotate(type);
         e.preventDefault();
       }
     },
 
-    _undo: function(e) {
-      this.model.select([]); // Deselect
-      this.model.document.undo();
+    _undo: function() {
+      this.session.select([]); // Deselect
+      this.chronicle.rewind();
       this.init();
       this.render();
       return false;
     },
 
-    _redo: function(e) {
-      this.model.select([]); // Deselect
-      this.model.document.redo();
+    _redo: function() {
+      this.session.select([]); // Deselect
+      this.chronicle.forward(this.chronicle.find("last"));
       this.init();
       this.render();
       return false;
     },
 
     _indent: function(e, reverse) {
-      var that = this;
-      if (this.model.level() === 3) {
-        var node = this.views.document.nodes[_.first(this.model.selection())];
+      if (this.session.level() === 3) {
+        var node = this.views.document.nodes[_.first(this.session.selection())];
 
         if (node.model.type === "heading") {
           var level = node.model.level;
@@ -201,7 +201,7 @@
             level = Math.min(level+1, 3);
           }
 
-          that.model.document.apply(["update", {id: node.model.id, "data": {
+          this.session.document.apply(["update", {id: node.model.id, "data": {
             "level": level
           }}]);
 
@@ -237,13 +237,15 @@
       this.updateUndoRedoControls();
     },
 
-    _refUpdated: function(ref, sha) {
+    _refUpdated: function() {
       console.log('ref updated, yay');
       this.updateUndoRedoControls();
     },
 
-    initialize: function(options) {
+    initialize: function() {
       this.mode = "edit";
+      this.session = this.model;
+      this.chronicle = this.session.chronicle;
       this.init();
     },
 
@@ -256,13 +258,13 @@
       this.views = {};
 
       this.views.document = new Substance.Composer.views.Document({ model: this.model });
-      this.views.tools = new Substance.Composer.views.Tools({model: this.model });
+      this.views.tools = new Substance.Composer.views.Tools({ model: this.model });
     },
 
     clear: function() {
       // HACK: ensures there are no remaining floating annotation controls
       $('.annotation-tools').hide();
-      this.model.select([]);
+      this.session.select([]);
       this.updateMode();
     },
 
@@ -272,8 +274,8 @@
     },
 
     updateUndoRedoControls: function() {
-      var head = this.model.document.getRef('head');
-      var last = this.model.document.getRef('last');
+      var head = this.chronicle.getState();
+      var last = this.chronicle.find('last');
 
       if (head === last) {
         $('#document_menu .redo').addClass('disabled');
@@ -291,7 +293,7 @@
     render: function() {
       var that = this;
       this.$el.html(_.tpl('composer'));
-      this.renderDoc()
+      this.renderDoc();
 
       that.updateMode();
       _.delay(function() {

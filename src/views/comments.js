@@ -1,3 +1,9 @@
+(function(root) { "use_strict";
+
+var sc = root.sc;
+var _ = root._;
+var Substance = root.Substance;
+
 sc.views.Comments = Substance.View.extend({
 
   // Events
@@ -23,7 +29,7 @@ sc.views.Comments = Substance.View.extend({
     if (!node) node = undefined;
     if (!annotation) annotation = undefined;
 
-    this.model.document.apply(["insert", {
+    this.document.apply(["insert", {
       id: "comment:"+Substance.util.uuid(),
       type: "comment",
       data: {
@@ -31,23 +37,23 @@ sc.views.Comments = Substance.View.extend({
         node: node,
         annotation: annotation,
         created_at: new Date().toJSON(),
-        user: Substance.session.user()
+        user: this.session.user()
       }
     }]);
 
     // Not too smart™
-    this.model.comments.compute(this.scope);
+    this.comments.compute(this.scope);
     // this.render(); // compute triggers an event that causes re-render
 
     // Notify Composer -> triggers a re-render
-    if (node) router.trigger('node:dirty', node);
+    if (node) Substance.router.trigger('node:dirty', node);
     return false;
   },
 
   _deleteComment: function(e) {
     var comment = $(e.currentTarget).attr('data-id');
-    this.model.document.apply(["delete", { nodes: [comment] }]);
-    this.model.comments.compute(this.scope);
+    this.document.apply(["delete", { nodes: [comment] }]);
+    this.comments.compute(this.scope);
     return false;
   },
 
@@ -55,21 +61,21 @@ sc.views.Comments = Substance.View.extend({
     var node = this.$('.comment-scope.active').attr('data-node');
     var annotation = this.$('.comment-scope.active').attr('data-annotation');
 
-    this.model.document.apply(["delete", { nodes: [annotation] }]);
-    this.model.comments.compute();
+    this.document.apply(["delete", { nodes: [annotation] }]);
+    this.comments.compute();
 
     this.activateScope('node_comments');
 
     // Delete all associated comments
-    var comments = this.model.document.find('comments', annotation);
+    var comments = this.document.find('comments', annotation);
 
-    this.model.document.apply(["delete", { nodes: _.pluck(comments, 'id')}]);
-    
+    this.document.apply(["delete", { nodes: _.pluck(comments, 'id')}]);
+
     // Notify Surface
-    router.trigger('annotation:deleted', node, annotation);
+    Substance.router.trigger('annotation:deleted', node, annotation);
 
     // Notify Composer -> triggers a re-render
-    router.trigger('node:dirty', node);
+    Substance.router.trigger('node:dirty', node);
     return false;
   },
 
@@ -79,7 +85,7 @@ sc.views.Comments = Substance.View.extend({
     var scope = $(e.currentTarget).attr('id');
 
     // Notify Surface
-    router.trigger('comment-scope:selected', scope, node, annotation);
+    Substance.router.trigger('comment-scope:selected', scope, node, annotation);
   },
 
   activateScope: function(scope) {
@@ -97,16 +103,20 @@ sc.views.Comments = Substance.View.extend({
   initialize: function(options) {
     this.documentView = options.documentView;
 
+    this.session = this.model;
+    this.document = this.session.document;
+    this.comments = this.session.comments;
+
     // Initial comments computation
-    this.model.comments.compute();
+    this.comments.compute();
 
     // Triggered by Text Node
-    router.off('comment-scope:selected', this.activateScope);
-    router.on('comment-scope:selected', this.activateScope, this);
+    Substance.router.off('comment-scope:selected', this.activateScope);
+    Substance.router.on('comment-scope:selected', this.activateScope, this);
 
     // Listing to comments:updated event on session
-    this.model.off('comments:updated', this.render);
-    this.model.on('comments:updated', this.render, this);
+    this.session.off('comments:updated', this.render);
+    this.session.on('comments:updated', this.render, this);
   },
 
   dispose: function() {
@@ -117,9 +127,11 @@ sc.views.Comments = Substance.View.extend({
   render: function (scope) {
     // Reset selected scope on every re-render
     this.scope = scope;
-    
-    this.$el.html(_.tpl('comments', this.model));
+
+    this.$el.html(_.tpl('comments', this.session));
     this.activateScope(this.scope);
     return this;
   }
 });
+
+})(this);
