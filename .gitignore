@@ -28,6 +28,7 @@ lib/surface
 lib/store
 lib/client
 lib/chronicle
+/lib/data
 
 /test/tests
 /lib/util
