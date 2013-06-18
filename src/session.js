@@ -415,7 +415,11 @@ Session.prototype = new Session.__prototype__();
 _.extend(Session.prototype, util.Events);
 
 Session.Document = function(session, document, schema) {
-  Substance.VersionedDocument.call(this, session.chronicle, document, schema);
+  // TODO: Use versioned doc
+  // Substance.VersionedDocument.call(this, session.chronicle, document, schema);
+  Substance.Document.call(this, document, schema);
+  // this.doc = new Document({"id": "substance-doc"});
+
   this.store = new Session.DocumentStore(session, document.id);
 };
 
@@ -424,16 +428,20 @@ Session.Document.__prototype__ = function() {
   var __super__ = util.prototype(this);
 
   // Persists the change before triggering any observers.
-  this.apply = function(operation, options) {
-    options = options || {};
-    // apply the operation to the document (Substance.Document.apply)
-    // without triggering events
-    var commit = __super__.apply.call(this, operation, _.extend({}, options, {"silent": true}));
+  // the chronicled doc takes over that repsonsibility now
+  
+  // this.apply = function(operation, options) {
+  //   options = options || {};
+  //   // apply the operation to the document (Substance.Document.apply)
+  //   // without triggering events
 
-    if(!options['silent']) {
-      this.trigger('commit:applied', commit);
-    }
-  };
+  //   console.log('operation coming in is:', operation);
+  //   var commit = __super__.apply.call(this, operation, _.extend({}, options, {"silent": true}));
+
+  //   if(!options['silent']) {
+  //     this.trigger('commit:applied', commit);
+  //   }
+  // };
 };
 
 // inherit the prototype of Substance.Document which extends util.Events

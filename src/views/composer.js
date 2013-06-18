@@ -273,21 +273,23 @@
       this.views.document.updateMode();
     },
 
+    // TODO: enable again
     updateUndoRedoControls: function() {
-      var head = this.chronicle.getState();
-      var last = this.chronicle.find('last');
+      // 
+      // var head = this.chronicle.getState();
+      // var last = this.chronicle.find('last');
 
-      if (head === last) {
-        $('#document_menu .redo').addClass('disabled');
-      } else {
-        $('#document_menu .redo').removeClass('disabled');
-      }
+      // if (head === last) {
+      //   $('#document_menu .redo').addClass('disabled');
+      // } else {
+      //   $('#document_menu .redo').removeClass('disabled');
+      // }
 
-      if (head === null) {
-        $('#document_menu .undo').addClass('disabled');
-      } else {
-        $('#document_menu .undo').removeClass('disabled');
-      }
+      // if (head === null) {
+      //   $('#document_menu .undo').addClass('disabled');
+      // } else {
+      //   $('#document_menu .undo').removeClass('disabled');
+      // }
     },
 
     render: function() {

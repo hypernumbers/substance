@@ -80,14 +80,18 @@ var Textish = {
 
       // Update content incrementally
       if (content !== prevContent) {
-        that.document.apply(["update", {id: that.model.id, "data": {"content": delta}}]);
+
+        var cmd = ["update", that.model.id, "content", delta];
+        that.document.exec(cmd);
       }
 
       // Applying annotation ops...
-      _.each(ops, function(op) {
-        if (op[1].data) op[1].data.node = that.model.id;
-        that.document.apply(op);
-      });
+      // No longer needed, since they're transformed automatically
+
+      // _.each(ops, function(op) {
+      //   if (op[1].data) op[1].data.node = that.model.id;
+      //   that.document.apply(op);
+      // });
     });
   },
 
@@ -182,7 +186,6 @@ var Textish = {
 
   // Create a new annotation with the given annotation type
   insertAnnotation: function(type, sel) {
-
     var id = "annotation:"+Substance.util.uuid();
     var data = {
       id: id,

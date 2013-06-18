@@ -3,7 +3,7 @@
 var _ = root._;
 var sc = root.sc;
 
-sc.views.Node.define('code', _.extend(sc.views.Textish, {
+sc.views.Node.define('codeblock', _.extend(sc.views.Textish, {
 
   className: 'content-node code',
 

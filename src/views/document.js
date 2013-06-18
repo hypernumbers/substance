@@ -27,13 +27,15 @@ sc.views.Document = Substance.View.extend({
     this.document = this.session.document;
 
     // Delegate update operations
-    this.document.on('commit:applied', function(commit) {
-      switch(commit.op[0]) {
-        case "move": that.move(commit.op[1]); break;
-        case "insert": that.insert(commit.op[1]); break;
-        case "update": that.update(commit.op[1]); break;
-        case "set": that.set(commit.op[1]); break;
-        case "delete": that.delete(commit.op[1]); break;
+    this.document.on('command:executed', function(command) {
+      
+      switch(command.op) {
+        // case "move": that.move(commit.op[1]); break;
+        case "create": that.create(command.args); break;
+        case "position": that.position(command.args); break;
+        case "update": that.update(that.document.get(command.path[0]), command.args); break;
+        case "set": that.set(command.args); break;
+        case "delete": that.delete(command.args); break;
       }
     });
 
@@ -135,7 +137,6 @@ sc.views.Document = Substance.View.extend({
         ctx.drawImage(img, 0, 0, width, height);
 
         var mediumImage = canvas.toDataURL("image/png");
-
         var mediumImageId = Substance.util.uuid();
         var largeImageId = Substance.util.uuid();
 
@@ -169,7 +170,7 @@ sc.views.Document = Substance.View.extend({
 
   // Get a particular node by id
   getNode: function(id) {
-    return this.document.nodes[id];
+    return this.document.get(id);
   },
 
   set: function() {
@@ -177,35 +178,41 @@ sc.views.Document = Substance.View.extend({
     this.initSurface("title");
   },
 
-  insert: function(options) {
+  create: function(options) {
     var node = this.getNode(options.id);
 
-    var types = this.document.getTypes(node.type);
-    if (types[0] !== "content") return; // skip non-content nodes
+    // Is this working?
+    var baseType = this.document.schema.baseType(node.type); 
+    if (baseType !== "content") return; // skip non-content nodes
 
     var view = this.createNodeView(node);
-
+    console.log('created view', view);
     this.nodes[node.id] = view;
+  },
 
-    var newEl = $(view.render().el);
-    if (options.target && options.target !== "back") {
-      newEl.insertAfter($('#'+_.htmlId(options.target)));
-    } else {
-      this.$('.nodes').append(newEl);
-    }
-    newEl.click();
-    newEl.find('.content').focus();
+  position: function(options) {
+    _.each(options.nodes, function(n) {
+      console.log('position', n, options);
+      var newEl = $(this.nodes[n].render().el);
+      if (options.target === -1) {
+        this.$('.nodes').append(newEl);
+      } else {
+        throw ('Not yet implemented');
+      }
+
+      newEl.click();
+      newEl.find('.content').focus();
+
+    }, this);
   },
 
   // Node content has been updated
-  update: function(options) {
-    var types = this.document.getTypes(this.getNode(options.id).type);
-    if (types[0] !== "content") return; // skip non-content nodes
+  update: function(node, options) {
+    var baseType = this.document.schema.baseType(node.type);
+    if (baseType !== "content") return; // skip non-content nodes
 
-    var node = this.nodes[options.id];
-
-    // Only rerender if not update comes from outside
-    if (this.session.node() !== options.id) {
+    // Only rerender if update comes from outside
+    if (this.session.node() !== node.id) {
       node.render();
     }
   },
@@ -223,8 +230,12 @@ sc.views.Document = Substance.View.extend({
 
   build: function() {
     this.nodes = {};
-    this.document.each(function(node) {
-      this.nodes[node.id] = this.createNodeView(node);
+
+    var view = this.document.get('content');
+
+    _.each(view.nodes, function(n) {
+      var node = this.document.get(n);
+      this.nodes[n] = this.createNodeView(node);
     }, this);
   },
 
@@ -233,19 +244,27 @@ sc.views.Document = Substance.View.extend({
 
   insertNode: function(type, options) {
     var selection = this.session.users[this.session.user()].selection;
-    var target = options.target || _.last(selection) || 'back';
+    // var target = options.target || _.last(selection) || 'back';
+
+    var target = -1; // insert at the back
     var properties = {};
 
     properties["content"] = options.content || "";
-
     if (type === "heading") properties["level"] = 1;
 
-    this.document.apply(["insert", {
-      "id": Substance.util.uuid(type+':', 8),
-      "type": type,
-      "target": target,
-      "data": properties
-    }]);
+    var newNode = _.extend(properties, {
+      "id": Substance.util.uuid(type+"_", 8),
+      "type": type
+    });
+    
+    // console.log('CREATE NODE', ["create", newNode]);
+      
+    // 1. create node
+    this.document.exec(["create", newNode]);
+
+    // 2. position
+    this.document.exec(["position", "content", {"nodes": [newNode.id], "target": target }]);
+
   },
 
   deleteNodes: function() {
@@ -289,7 +308,7 @@ sc.views.Document = Substance.View.extend({
       node_types: [
         { name: "Heading", type: "heading" },
         { name: "Text", type: "text" },
-        { name: "Code", type: "code" },
+        { name: "Code", type: "codeblock" },
         { name: "Image", type: "image" }
       ]
     }));
@@ -398,7 +417,7 @@ sc.views.Document = Substance.View.extend({
   select: function(e) {
     // Skip when move handle has been clicked
     if ($(e.target).hasClass('move')) return;
-    var id = $(e.currentTarget)[0].id.replace(/_/g, ":");
+    var id = $(e.currentTarget)[0].id;
     this.session.select([id]);
   },
 
@@ -436,11 +455,11 @@ sc.views.Document = Substance.View.extend({
 
     // Init editor for document abstract and title
     that.initSurface("abstract");
-    that.initSurface("title");
+    that.initSurface("title")
 
-    that.model.document.each(function(node) {
-      $(that.nodes[node.id].render().el).appendTo(that.$('.nodes'));
-    }, that);
+    _.each(this.document.get('content').nodes, function(n) {
+      $(that.nodes[n].render().el).appendTo(that.$('.nodes'));
+    });
     that.bindFileEvents();
   },
 
@@ -451,7 +470,6 @@ sc.views.Document = Substance.View.extend({
       node.dispose();
     });
   }
-
 });
 
 })(this);
