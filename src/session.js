@@ -419,6 +419,31 @@ Session.Document = function(session, document, schema) {
   // Substance.VersionedDocument.call(this, session.chronicle, document, schema);
   Substance.Document.call(this, document, schema);
   // this.doc = new Document({"id": "substance-doc"});
+      
+  // 1. create heading
+  this.exec(["create", {
+    "id": "h1",
+    "type": "heading",
+    "content": "Hello World",
+    "level": 1
+  }]);
+
+  // 2. create text
+  this.exec(["create", {
+    "id": "t1",
+    "type": "text",
+    "content": "Woot"
+  }]);
+
+  // 3. create more text
+  this.exec(["create", {
+    "id": "t2",
+    "type": "text",
+    "content": "Even more text."
+  }]);
+
+  // 4. position elements
+  this.exec(["position", "content", {"nodes": ["h1", "t1", "t2"], "target": -1 }]);
 
   this.store = new Session.DocumentStore(session, document.id);
 };

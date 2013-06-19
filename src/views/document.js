@@ -191,19 +191,34 @@ sc.views.Document = Substance.View.extend({
   },
 
   position: function(options) {
+    var that = this;
     _.each(options.nodes, function(n) {
       console.log('position', n, options);
-      var newEl = $(this.nodes[n].render().el);
-      if (options.target === -1) {
-        this.$('.nodes').append(newEl);
-      } else {
-        throw ('Not yet implemented');
+
+      // Find existing node in the DOM
+      var $el = this.$('#'+n);
+
+      // Construct new nodes
+      if ($el.length === 0) {
+        $el.click();
+        $el.find('.content').focus();
       }
 
-      newEl.click();
-      newEl.find('.content').focus();
-
     }, this);
+
+    var $selection = $(_.map(options.nodes, function(n) {
+      var el = that.$('#'+n)[0];
+      return el || that.nodes[n].render().el;
+    }));
+
+    var target = this.$('.nodes .content-node')[options.target].id;
+    console.log('inserting at', target);
+
+    if (options.target === 0) {
+      $selection.insertBefore(this.$('.content-node').first());
+    } else {
+      $selection.insertAfter($('#'+target));
+    }
   },
 
   // Node content has been updated
@@ -276,21 +291,12 @@ sc.views.Document = Substance.View.extend({
   },
 
   updateNode: function(node, properties) {
+    console.log('updating nodes');
     this.nodes[node].update(properties);
   },
 
-  // Incoming move node operation
-  move: function(options) {
-    var $selection = $(_.map(options.nodes, function(n) { return '#'+_.htmlId(n); }).join(', '));
-    if (options.target === "front") {
-      $selection.insertBefore($('#document .content-node').first());
-    } else {
-      $selection.insertAfter($('#'+_.htmlId(options.target)));
-    }
-  },
-
   // Set the right mode
-  // REWORK
+  // TODO: rework
   updateMode: function() {
     var selection = this.session.selection();
     $('#document').removeClass();
@@ -374,36 +380,14 @@ sc.views.Document = Substance.View.extend({
 
   moveDown: function() {
     var selection = this.session.users[this.session.user()].selection;
-    var last = this.getNode(_.last(selection));
-    var successor = this.document.getSuccessor(last.id);
+    var last = _.last(selection);
 
-    if (successor) {
-      this.document.apply(["move", {
-        "nodes": selection, "target": successor
-      }], {
-        user: this.session.user()
-      });
-    }
+    var target = this.document.get('content').nodes.indexOf(last) + 1;
+    this.document.exec(["position", "content", {"nodes": selection, "target": target}]);
   },
 
   moveUp: function() {
-    var selection = this.session.users[this.session.user()].selection;
-    var first = this.getNode(_.first(selection));
-    var doc = this.document;
 
-    var pos = doc.position(first.id);
-    var pred = doc.getPredecessor(first.id);
-
-    pred = doc.getPredecessor(pred);
-    if (pred || pos === 1) {
-      // If first selected node is at index 1 move selection to front
-      var target = pos === 1 ? 'front' : pred;
-      doc.apply(["move", {
-        "nodes": selection, "target": target
-      }], {
-        user: this.session.user()
-      });
-    }
   },
 
   createNodeView: function(node) {
