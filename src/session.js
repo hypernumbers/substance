@@ -92,11 +92,12 @@ Session.__prototype__ = function() {
       }
     }, schema);
 
-    this.localStore.create(document.id, {
-      meta: document.meta,
-      commits: document.commits,
-      refs: document.refs
-    });
+
+    // this.localStore.create(document.id, {
+    //   meta: document.meta,
+    //   commits: document.commits,
+    //   refs: document.refs
+    // });
 
     this.document = new Session.Document(this, document, schema);
     this.initDoc();
@@ -519,10 +520,12 @@ Session.DocumentStore.__prototype__ = function() {
     return this.store.createBlob(this.id, blobId, base64data);
   };
 
+  // TODO: reactivate
   this.getBlob = function(blobId) {
     // Note: check before delegation to make this call non-failing,
     // instead null is returned.
-    return this.store.hasBlob(this.id, blobId) ? this.store.getBlob(this.id, blobId) : null;
+    // return this.store.hasBlob(this.id, blobId) ? this.store.getBlob(this.id, blobId) : null;
+    return null;
   };
 
   this.hasBlob = function(blobId) {

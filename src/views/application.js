@@ -142,12 +142,13 @@
 
     // Toggle document view
     document: function(id) {
-      this.session.loadDocument(id);
+      // this.session.loadDocument(id);
 
-      if (this.view) this.view.dispose();
-      this.view = new sc.views.Editor({ model: this.session });
-      this.render();
-      this.listenForDocumentChanges();
+      // if (this.view) this.view.dispose();
+      // this.view = new sc.views.Editor({ model: this.session });
+      // this.render();
+      // this.listenForDocumentChanges();
+      this.newDocument();
     },
 
     // Toggle document view

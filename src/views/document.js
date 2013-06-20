@@ -3,6 +3,8 @@
 var sc = root.sc;
 var Substance = root.Substance;
 var _ = root._;
+var ot = Substance.Chronicle.ot;
+var Data = Substance.Data;
 
 sc.views.Document = Substance.View.extend({
   id: 'document',
@@ -17,7 +19,263 @@ sc.views.Document = Substance.View.extend({
     }
   },
 
-  // Handlers
+
+  // Handle local user interactions
+  // ========
+  // 
+  // Those usually execute a document command
+  // 
+
+  // Insert new content node
+  // --------
+  // 
+
+  insertNode: function(type, options) {
+    var selection = this.session.users[this.session.user()].selection;
+
+    var target = -1; // insert at the back
+    var properties = {};
+
+    properties["content"] = options.content || "";
+    if (type === "heading") properties["level"] = 1;
+
+    var newNode = _.extend(properties, {
+      "id": Substance.util.uuid(type+"_", 8),
+      "type": type
+    });
+      
+    // 1. Create fresh content node
+    this.document.exec(["create", newNode]);
+
+    // 2. Position the fresh node
+    this.document.exec(["position", "content", {"nodes": [newNode.id], "target": target }]);
+  },
+
+  // Delete current selection
+  // --------
+  // 
+
+  deleteNodes: function() {
+    this.document.exec(["delete", {"nodes": this.session.selection()}]);
+  },
+
+
+  // Set mode accordingly
+  // --------
+  // 
+
+  updateMode: function() {
+    var selection = this.session.selection();
+    $('#document').removeClass();
+
+    if (selection.length > 0) {
+      $('#document').addClass(this.session.edit ? 'edit-mode' : 'structure-mode');
+    } else {
+      $('#document').addClass('document-mode');
+    }
+
+    // Render context bar
+    this.$('#context_bar').html(_.tpl('context_bar', {
+      level: this.session.level(),
+      // TODO: Use Plugin System!
+      node_types: [
+        { name: "Heading", type: "heading" },
+        { name: "Text", type: "text" },
+        { name: "Code", type: "codeblock" },
+        { name: "Image", type: "image" }
+      ]
+    }));
+  },
+
+  // Update user node selection
+  // --------
+  // 
+
+  updateSelections: function() {
+    $('.content-node.selected').removeClass('selected');
+
+    // HACK: ensures there are no remaining floating annotation controls
+    $('.annotation-tools').hide();
+
+    this.updateMode();
+    _.each(this.session.selections, function(user, node) {
+      $('#'+_.htmlId(node)).addClass('selected');
+    }, this);
+  },
+
+  // Select next node
+  // --------
+
+  selectNext: function() {
+    var selection = this.session.users[this.session.user()].selection;
+    var nodes = this.document.get('content').nodes;
+    if (selection.length === 0) return this.session.select([_.first(nodes)]);
+
+    var nextPos = this.getSuccessor(_.last(selection));
+    if (nextPos !== null) return this.session.select([this.getId(nextPos)]);
+  },
+
+  // Select previous node
+  // --------
+
+  selectPrev: function() {
+    var selection = this.session.users[this.session.user()].selection;
+    var nodes = this.document.get('content').nodes;
+    if (selection.length === 0) return this.session.select([_.last(nodes)]);
+    var prevPos = this.getPredecessor(_.last(selection));
+    if (prevPos !== null) return this.session.select([this.getId(prevPos)]);
+  },
+
+  // Expand current selection
+  // --------
+  // 
+
+  expandSelection: function() {
+    var selection = this.session.users[this.session.user()].selection;
+    var lastnode = _.last(selection);
+    var doc = this.document;
+
+    if (lastnode) {
+      var next = this.getId(this.getSuccessor(lastnode));
+      if (next) {
+        this.session.select(selection.concat([next]));
+      }
+    }
+  },
+
+  // Narrow current selection
+  // --------
+  // 
+
+  narrowSelection: function() {
+    var selection = this.session.users[this.session.user()].selection;
+    this.session.select(_.clone(selection).splice(0, selection.length-1));
+  },
+
+
+  // Move selection down by one
+  // --------
+  // 
+
+  moveDown: function() {
+    var selection = this.session.users[this.session.user()].selection;
+    var target = this.getSuccessor(_.last(selection));
+    if (target !== null) this.document.exec(["position", "content", {"nodes": selection, "target": target}]);
+  },
+
+  // Move selection up by one
+  // --------
+  // 
+
+  moveUp: function() {
+    var selection = this.session.users[this.session.user()].selection;
+    var target = this.getPredecessor(_.first(selection));
+    console.log('MOVEING UP', target);
+    if (target !== null) this.document.exec(["position", "content", {"nodes": selection, "target": target}]);
+  },
+
+
+  // Select a node
+  // --------
+  // 
+
+  select: function(e) {
+    // Skip when move handle has been clicked
+    if ($(e.target).hasClass('move')) return;
+    var id = $(e.currentTarget)[0].id;
+    this.session.select([id]);
+  },
+
+
+  // Document Command Handlers
+  // ========
+  // 
+  // Those are called after a command has been applied successfully
+  // on the document model.
+
+  // Obsolete?
+  // set: function() {
+  //   this.initSurface("abstract");
+  //   this.initSurface("title");
+  // },
+
+  // TODO: can't we just skip that?
+  // create: function(options) {
+  //   var node = this.getNode(options.id);
+
+  //   // Is this working?
+  //   var baseType = this.document.schema.baseType(node.type); 
+  //   if (baseType !== "content") return; // skip non-content nodes
+  // },
+
+  // Arrange content nodes
+  // --------
+  // 
+
+  position: function(options) {
+    var that = this;
+
+    var selection = (_.map(options.nodes, function(n) {
+      var el = that.$('#'+n)[0];
+      if (el) return el;
+
+      // Fresh node detected, construct first
+      var nodeView = that.createNodeView(that.document.get(n))
+      that.nodes[n] = nodeView;
+      return nodeView.render().el;
+    }));
+
+
+    function moveSelection(selection, pos) {
+      // 1. remove selection from the DOM
+      $(selection).remove();
+
+      // 2. compute reference node
+      var target = that.$('.content-node')[pos];
+
+      // 3. inject elements
+      if (target) {
+        $(selection).insertBefore($(target));  
+      } else {
+        $(selection).appendTo(that.$('.nodes'));
+      }
+    }
+
+    moveSelection(selection, options.target);
+  },
+
+  // Update node after content has changed
+  // --------
+  // 
+
+  update: function(node, options) {
+    var baseType = this.document.schema.baseType(node.type);
+    if (baseType !== "content") return; // skip non-content nodes
+
+    // Only rerender if update comes from outside
+    if (this.session.node() !== node.id) {
+      node.render();
+    }
+  },
+
+  // Called after nodes have been deleted from the document
+  // --------
+  // 
+
+  delete: function(options) {
+    _.each(options.nodes, function(n) {
+      this.$('#'+n).remove();
+      var view = this.nodes[n];
+      view.dispose();
+      delete this.nodes[n];
+    }, this);
+    this.session.select([]);
+  },
+
+
+
+
+  // Constructor
   // --------
 
   initialize: function() {
@@ -26,15 +284,12 @@ sc.views.Document = Substance.View.extend({
     this.session = this.model;
     this.document = this.session.document;
 
-    // Delegate update operations
+    // Delegate update commands
     this.document.on('command:executed', function(command) {
-      
       switch(command.op) {
-        // case "move": that.move(commit.op[1]); break;
         case "create": that.create(command.args); break;
         case "position": that.position(command.args); break;
         case "update": that.update(that.document.get(command.path[0]), command.args); break;
-        case "set": that.set(command.args); break;
         case "delete": that.delete(command.args); break;
       }
     });
@@ -89,6 +344,67 @@ sc.views.Document = Substance.View.extend({
     $(document.body).keydown(this.onKeydown);
   },
 
+
+  // Utilities
+  // ================
+
+  // For a given node object create the corresponding view
+  // --------
+  // 
+
+  createNodeView: function(node) {
+    return sc.views.Node.create({
+      session: this.session,
+      document: this.session.document,
+      model: node
+    });
+  },
+
+  // Get successor for a given node id
+  // --------
+  // 
+
+  getSuccessor: function(id) {
+    var pos = this.getPosition(id);
+    var l = this.document.get('content').nodes.length;
+    return (pos+1 < l) ? pos+1 : null;
+  },
+
+  // Get predecessor for a given node id
+  // --------
+  // 
+
+  getPredecessor: function(id) {
+    var pos = this.getPosition(id);
+    var l = this.document.get('content').nodes.length;
+    return (pos-1 >= 0) ? pos-1 : null;
+  },
+
+  // Get position for a given node id
+  // --------
+  // 
+
+  getPosition: function(id) {
+    var nodes = this.document.get('content').nodes;
+    var pos = nodes.indexOf(id);
+    return pos >= 0 ? pos : null;
+  },
+
+  // Get node id at a given position in the doc
+  // --------
+  // 
+  
+  getId: function(pos) {
+    var nodes = this.document.get('content').nodes;
+    return nodes[pos];
+  },
+
+
+
+  // Handle for cover image upload
+  // --------
+  // 
+
   handleFileSelect: function(evt) {
     var that = this;
     evt.stopPropagation();
@@ -140,7 +456,6 @@ sc.views.Document = Substance.View.extend({
         var mediumImageId = Substance.util.uuid();
         var largeImageId = Substance.util.uuid();
 
-
         if (!this.session.localStore.createBlob(that.model.document.id, mediumImageId, mediumImage) ||
             !this.session.localStore.createBlob(that.model.document.id, largeImageId, largeImage)) {
           throw new Substance.errors.Error('Storing images failed');
@@ -159,6 +474,10 @@ sc.views.Document = Substance.View.extend({
     reader.readAsDataURL(file);
   },
 
+  // Handle for cover image upload
+  // --------
+  // 
+
   bindFileEvents: function() {
     var that = this;
     _.delay(function() {
@@ -168,80 +487,10 @@ sc.views.Document = Substance.View.extend({
     }, 200);
   },
 
-  // Get a particular node by id
-  getNode: function(id) {
-    return this.document.get(id);
-  },
 
-  set: function() {
-    this.initSurface("abstract");
-    this.initSurface("title");
-  },
-
-  create: function(options) {
-    var node = this.getNode(options.id);
-
-    // Is this working?
-    var baseType = this.document.schema.baseType(node.type); 
-    if (baseType !== "content") return; // skip non-content nodes
-
-    var view = this.createNodeView(node);
-    console.log('created view', view);
-    this.nodes[node.id] = view;
-  },
-
-  position: function(options) {
-    var that = this;
-    _.each(options.nodes, function(n) {
-      console.log('position', n, options);
-
-      // Find existing node in the DOM
-      var $el = this.$('#'+n);
-
-      // Construct new nodes
-      if ($el.length === 0) {
-        $el.click();
-        $el.find('.content').focus();
-      }
-
-    }, this);
-
-    var $selection = $(_.map(options.nodes, function(n) {
-      var el = that.$('#'+n)[0];
-      return el || that.nodes[n].render().el;
-    }));
-
-    var target = this.$('.nodes .content-node')[options.target].id;
-    console.log('inserting at', target);
-
-    if (options.target === 0) {
-      $selection.insertBefore(this.$('.content-node').first());
-    } else {
-      $selection.insertAfter($('#'+target));
-    }
-  },
-
-  // Node content has been updated
-  update: function(node, options) {
-    var baseType = this.document.schema.baseType(node.type);
-    if (baseType !== "content") return; // skip non-content nodes
-
-    // Only rerender if update comes from outside
-    if (this.session.node() !== node.id) {
-      node.render();
-    }
-  },
-
-  // Nodes have been deleted
-  delete: function(options) {
-    _.each(options.nodes, function(node) {
-      this.$('#'+_.htmlId(node)).remove();
-      // var view = this.nodes[node];
-      // view.dispose();
-      // delete this.nodes[node];
-    }, this);
-    this.session.select([]);
-  },
+  // Initial view construction
+  // --------
+  // 
 
   build: function() {
     this.nodes = {};
@@ -254,156 +503,9 @@ sc.views.Document = Substance.View.extend({
     }, this);
   },
 
-  // UI updates
+  // Init Surface for a particular property
   // --------
-
-  insertNode: function(type, options) {
-    var selection = this.session.users[this.session.user()].selection;
-    // var target = options.target || _.last(selection) || 'back';
-
-    var target = -1; // insert at the back
-    var properties = {};
-
-    properties["content"] = options.content || "";
-    if (type === "heading") properties["level"] = 1;
-
-    var newNode = _.extend(properties, {
-      "id": Substance.util.uuid(type+"_", 8),
-      "type": type
-    });
-    
-    // console.log('CREATE NODE', ["create", newNode]);
-      
-    // 1. create node
-    this.document.exec(["create", newNode]);
-
-    // 2. position
-    this.document.exec(["position", "content", {"nodes": [newNode.id], "target": target }]);
-
-  },
-
-  deleteNodes: function() {
-    this.document.apply(["delete", {
-      "nodes": this.session.selection()
-    }], {
-      user: this.session.user()
-    });
-  },
-
-  updateNode: function(node, properties) {
-    console.log('updating nodes');
-    this.nodes[node].update(properties);
-  },
-
-  // Set the right mode
-  // TODO: rework
-  updateMode: function() {
-    var selection = this.session.selection();
-    $('#document').removeClass();
-
-    if (selection.length) {
-      $('#document').addClass(this.session.edit ? 'edit-mode' : 'structure-mode');
-    } else {
-      $('#document').addClass('document-mode');
-    }
-
-    // Render context bar
-    this.$('#context_bar').html(_.tpl('context_bar', {
-      level: this.session.level(),
-      // TODO: Use Plugin System!
-      node_types: [
-        { name: "Heading", type: "heading" },
-        { name: "Text", type: "text" },
-        { name: "Code", type: "codeblock" },
-        { name: "Image", type: "image" }
-      ]
-    }));
-  },
-
-  // Updates the current selection
-  updateSelections: function() {
-    // $('.content-node .down').hide();
-    // $('.content-node .up').hide();
-    // $('.content-node .delete').hide();
-    $('.content-node.selected').removeClass('selected');
-
-    // HACK: ensures there are no remaining floating annotation controls
-    $('.annotation-tools').hide();
-
-    this.updateMode();
-
-    _.each(this.session.selections, function(user, node) {
-      $('#'+_.htmlId(node)).addClass('selected');
-    }, this);
-
-    // $('.content-node.selected').first().find('.up').show();
-    // $('.content-node.selected').first().find('.delete').show();
-    // $('.content-node.selected').last().find('.down').show();
-  },
-
-  // Issue commands
-  // --------
-
-  selectNext: function() {
-    var selection = this.session.users[this.session.user()].selection;
-    var doc = this.document;
-    if (selection.length === 0) return this.session.select([_.first(doc.views.content)]);
-    var next = doc.getSuccessor(_.last(selection));
-    if (next) return this.session.select([next]);
-  },
-
-  selectPrev: function() {
-    var selection = this.session.users[this.session.user()].selection;
-    var doc = this.document;
-    if (selection.length === 0) return this.session.select([_.last(doc.views.content)]);
-    var prev = doc.getPredecessor(_.first(selection));
-    return this.session.select(prev ? [prev] : [_.first(doc.views.content)]);
-  },
-
-  expandSelection: function() {
-    var selection = this.session.users[this.session.user()].selection;
-    var lastnode = _.last(selection);
-    var doc = this.document;
-
-    if (lastnode) {
-      var next = doc.getSuccessor(lastnode);
-      if (next) {
-        this.session.select(selection.concat([next]));
-      }
-    }
-  },
-
-  narrowSelection: function() {
-    var selection = this.session.users[this.session.user()].selection;
-    this.session.select(_.clone(selection).splice(0, selection.length-1));
-  },
-
-  moveDown: function() {
-    var selection = this.session.users[this.session.user()].selection;
-    var last = _.last(selection);
-
-    var target = this.document.get('content').nodes.indexOf(last) + 1;
-    this.document.exec(["position", "content", {"nodes": selection, "target": target}]);
-  },
-
-  moveUp: function() {
-
-  },
-
-  createNodeView: function(node) {
-    return sc.views.Node.create({
-      session: this.session,
-      document: this.session.document,
-      model: node
-    });
-  },
-
-  select: function(e) {
-    // Skip when move handle has been clicked
-    if ($(e.target).hasClass('move')) return;
-    var id = $(e.currentTarget)[0].id;
-    this.session.select([id]);
-  },
+  //
 
   initSurface: function(property) {
     var that = this;
@@ -424,6 +526,9 @@ sc.views.Document = Substance.View.extend({
   },
 
   // Initial render of all nodes
+  // --------
+  // 
+
   render: function() {
     var that = this;
     var doc = that.model.document;
@@ -446,6 +551,10 @@ sc.views.Document = Substance.View.extend({
     });
     that.bindFileEvents();
   },
+
+  // Proper view disposal
+  // --------
+  // 
 
   dispose: function() {
     console.log('disposing document view');

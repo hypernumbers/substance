@@ -815,7 +815,7 @@ h2 { font-size: 160%; padding-bottom: 15px; }
 
 #container #document .content-node .handle-2 .arrow {
   position: absolute;
-  top: 30px;
+  top: 10px;
   right: -9px;
   width: 0;
   height: 0;
