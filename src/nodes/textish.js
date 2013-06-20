@@ -14,22 +14,13 @@ var Textish = {
   // Initialize Surface
   initSurface: function() {
     var that = this;
-    var annos = Substance.app.view.model.document.find('annotations', this.model.id);
-
-    var annotations = {};
-
-    // Convert annotations to object format
-    _.each(annos, function(a) {
-      annotations[a.id] = a;
-    });
 
     this.surface = new Substance.Surface({
       el: this.$('.content')[0],
-      content: this.model.content,
-      annotations: annotations,
+      // content: this.model.content,
+      model: new Substance.TextModel(Substance.session.document, [this.model.id, "content"]),
       types: this.types
     });
-
 
     // Events
     // ------
@@ -80,7 +71,6 @@ var Textish = {
 
       // Update content incrementally
       if (content !== prevContent) {
-
         var cmd = ["update", that.model.id, "content", delta];
         that.document.exec(cmd);
       }
@@ -186,7 +176,7 @@ var Textish = {
 
   // Create a new annotation with the given annotation type
   insertAnnotation: function(type, sel) {
-    var id = "annotation:"+Substance.util.uuid();
+    var id = "annotation_"+Substance.util.uuid();
     var data = {
       id: id,
       type: type,

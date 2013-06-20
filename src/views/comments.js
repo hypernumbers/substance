@@ -24,29 +24,53 @@ sc.views.Comments = Substance.View.extend({
     var annotation = this.$('.comment-scope.active').attr('data-annotation');
     var content = $(e.currentTarget).parent().find('.comment-content').val();
 
+    // No empty comments allowed
     if (content.trim().length === 0) return false;
 
     if (!node) node = undefined;
     if (!annotation) annotation = undefined;
 
-    this.document.apply(["insert", {
-      id: "comment:"+Substance.util.uuid(),
-      type: "comment",
-      data: {
-        content: content,
-        node: node,
-        annotation: annotation,
-        created_at: new Date().toJSON(),
-        user: this.session.user()
+    console.log('current scope', this.scope);
+    console.log('node', node);
+    console.log('annotation', annotation);
+
+    // Stick comment on annotation or node
+    var target = annotation || node;
+
+    var cmd = ["comment", target, {
+        "id": "comment_"+Substance.util.uuid(),
+        "content": content.trim(),
+        "created_at": new Date().toJSON(),
+        "creator": this.session.user()
       }
-    }]);
+    ];
+
+    console.log('the command', cmd);
+
+    this.document.exec(cmd);
+
+    // this.document.apply(["insert", {
+    //   id: "comment:"+Substance.util.uuid(),
+    //   type: "comment",
+    //   data: {
+    //     content: content,
+    //     node: node,
+    //     annotation: annotation,
+    //     created_at: new Date().toJSON(),
+    //     creator: this.session.user()
+    //   }
+    // }]);
+
+    console.log('the fresh comment', this.document.find('comments', target));
 
     // Not too smart™
     this.comments.compute(this.scope);
+
     // this.render(); // compute triggers an event that causes re-render
 
     // Notify Composer -> triggers a re-render
     if (node) Substance.router.trigger('node:dirty', node);
+
     return false;
   },
 
@@ -119,11 +143,6 @@ sc.views.Comments = Substance.View.extend({
     this.session.on('comments:updated', this.render, this);
   },
 
-  dispose: function() {
-    console.log('disposing comments view');
-    this.disposeBindings();
-  },
-
   render: function (scope) {
     // Reset selected scope on every re-render
     this.scope = scope;
@@ -131,6 +150,11 @@ sc.views.Comments = Substance.View.extend({
     this.$el.html(_.tpl('comments', this.session));
     this.activateScope(this.scope);
     return this;
+  },
+
+  dispose: function() {
+    console.log('disposing comments view');
+    this.disposeBindings();
   }
 });
 

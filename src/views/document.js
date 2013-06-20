@@ -215,14 +215,19 @@ sc.views.Document = Substance.View.extend({
   position: function(options) {
     var that = this;
 
+    // remember new node (needs focus afterwards)
+    var newNode = null;
+
     var selection = (_.map(options.nodes, function(n) {
       var el = that.$('#'+n)[0];
       if (el) return el;
 
       // Fresh node detected, construct first
       var nodeView = that.createNodeView(that.document.get(n))
+      newNode = nodeView.el;
       that.nodes[n] = nodeView;
       return nodeView.render().el;
+      
     }));
 
 
@@ -242,6 +247,11 @@ sc.views.Document = Substance.View.extend({
     }
 
     moveSelection(selection, options.target);
+
+    if (newNode) {
+      $(newNode).click();
+      $(newNode).find('.content').focus(); // activate focus
+    }
   },
 
   // Update node after content has changed
@@ -510,7 +520,7 @@ sc.views.Document = Substance.View.extend({
     var that = this;
     this.surface = new Substance.Surface({
       el: this.$('.document-'+property)[0],
-      content: that.model.document.properties[property]
+      model: new Substance.TextModel(that.model.document, ["document", property])
     });
 
     // Events
@@ -543,7 +553,7 @@ sc.views.Document = Substance.View.extend({
 
     // Init editor for document abstract and title
     that.initSurface("abstract");
-    that.initSurface("title")
+    that.initSurface("title");
 
     _.each(this.document.get('content').nodes, function(n) {
       $(that.nodes[n].render().el).appendTo(that.$('.nodes'));
