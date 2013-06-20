@@ -274,7 +274,6 @@ sc.views.Document = Substance.View.extend({
 
 
 
-
   // Constructor
   // --------
 
@@ -287,7 +286,7 @@ sc.views.Document = Substance.View.extend({
     // Delegate update commands
     this.document.on('command:executed', function(command) {
       switch(command.op) {
-        case "create": that.create(command.args); break;
+        // case "create": that.create(command.args); break;
         case "position": that.position(command.args); break;
         case "update": that.update(that.document.get(command.path[0]), command.args); break;
         case "delete": that.delete(command.args); break;
