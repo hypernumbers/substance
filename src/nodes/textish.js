@@ -3,6 +3,7 @@
 var Substance = root.Substance;
 var _ = root._;
 var sc = root.sc;
+var ot = Substance.Chronicle.ot;
 
 // Textish
 // ----------
@@ -17,8 +18,7 @@ var Textish = {
 
     this.surface = new Substance.Surface({
       el: this.$('.content')[0],
-      // content: this.model.content,
-      model: new Substance.TextModel(Substance.session.document, [this.model.id, "content"]),
+      model: new Substance.Document.AnnotatedText(Substance.session.document, [this.model.id, "content"]),
       types: this.types
     });
 
@@ -62,11 +62,12 @@ var Textish = {
     this.surface.on('selection:changed', selectionChanged);
 
     this.surface.on('annotations:changed', function() {
+      console.log('annotations changed, yeah!');
       that.session.comments.updateAnnotations(that.surface.content, that.surface.annotations);
     });
 
     // Changes are confirmed.
-    this.surface.on('content:changed', function(content, prevContent, ops) {
+    this.surface.on('content:changed', function(content, prevContent) {
       var delta = _.extractOperation(prevContent, content);
 
       // Update content incrementally
@@ -74,14 +75,6 @@ var Textish = {
         var cmd = ["update", that.model.id, "content", delta];
         that.document.exec(cmd);
       }
-
-      // Applying annotation ops...
-      // No longer needed, since they're transformed automatically
-
-      // _.each(ops, function(op) {
-      //   if (op[1].data) op[1].data.node = that.model.id;
-      //   that.document.apply(op);
-      // });
     });
   },
 
@@ -125,8 +118,8 @@ var Textish = {
     if (a) {
       var start = sel[0];
       var end = start + sel[1];
-      var aStart = a.pos[0];
-      var aEnd = aStart + a.pos[1];
+      var aStart = a.range.start;
+      var aEnd = aStart + a.range.length;
 
       if (start <= aStart && end >= aEnd) {
         // Full overlap
@@ -146,13 +139,13 @@ var Textish = {
           // Partial overlap left-hand side
           this.surface.updateAnnotation({
             id: a.id,
-            pos: [end, a.pos[1] - (end - a.pos[0])],
+            range: new ot.TextOperation.Range([end, a.range.length - (end - aStart)]),
           });
         } else if (start < aEnd && end >= aEnd) {
           // Partial overlap right-hand side
           this.surface.updateAnnotation({
             id: a.id,
-            pos: [a.pos[0], start - aStart]
+            range: [aStart, start - aStart]
           });
         } else {
           // In the middle -> delete it
@@ -180,7 +173,7 @@ var Textish = {
     var data = {
       id: id,
       type: type,
-      pos: sel,
+      range: new ot.TextOperation.Range(sel),
     };
 
     if (type === "link") {

@@ -283,7 +283,6 @@ sc.views.Document = Substance.View.extend({
   },
 
 
-
   // Constructor
   // --------
 
@@ -496,7 +495,6 @@ sc.views.Document = Substance.View.extend({
     }, 200);
   },
 
-
   // Initial view construction
   // --------
   // 
@@ -520,7 +518,7 @@ sc.views.Document = Substance.View.extend({
     var that = this;
     this.surface = new Substance.Surface({
       el: this.$('.document-'+property)[0],
-      model: new Substance.TextModel(that.model.document, ["document", property])
+      model: new Substance.Document.AnnotatedText(that.model.document, ["document", property])
     });
 
     // Events
