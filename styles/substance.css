@@ -474,11 +474,56 @@ body {
 -------------------------------------------------------------------------------*/
 
 #dashboard {
+
+}
+
+#dashboard .shelf {
+  width: 260px;
+  padding: 20px;
   position: absolute;
-  top: 40px;
-  left: 60px;
+  left: 0px;
+  top: 0px;
   bottom: 0px;
-  overflow: auto;
+}
+
+/* Labels */
+#dashboard .shelf .label {
+  color: #888;
+  font-size: 10px;
+  text-transform: uppercase;
+  margin-top: 20px;
+}
+
+#dashboard .shelf .user {
+  margin-bottom: 30px;
+}
+
+#dashboard .shelf .collections a {
+  display: block;
+  height: 40px;
+  padding-left: 10px;
+  line-height: 40px;
+  border: none;
+}
+
+#dashboard .shelf .collections a:hover {
+  background: rgba(0,0,0,0.03);
+}
+
+#dashboard .shelf .collections a.active {
+  background: #333;
+  color: rgba(255,255,255,0.5);
+}
+
+#dashboard .shelf .collections a .count {
+  float: right;
+  padding-right: 10px;
+}
+
+#dashboard .shelf .recent-documents a {
+  margin-bottom: 10px;
+  display: block;
+  border: none;
 }
 
 #dashboard .documents {
@@ -489,98 +534,6 @@ body {
   right: 0px;
 }
 
-
-/*#dashboard #documents {
-  padding: 20px;
-  overflow: auto;
-}
-
-#dashboard #documents .document {
-  float: left;
-  position: relative;
-  width: 300px;
-  height: 150px;
-  background: #fff;
-  margin-right: 20px;
-  margin-bottom: 20px;
-
-  -webkit-box-shadow: 0px 1px 4px rgba(0, 0, 0, 0.35), inset 0px 0px 1px rgba(255, 255, 255, 0.15);
-  -moz-box-shadow: 0px 1px 4px rgba(0, 0, 0, 0.35), inset 0px 0px 1px rgba(255, 255, 255, 0.15);
-  box-shadow: 0px 1px 4px rgba(0, 0, 0, 0.35), inset 0px 0px 1px rgba(255, 255, 255, 0.15);
-}
-
-#dashboard #documents .document .delete-document {
-  display: none;
-  width: 25px;
-  height: 25px;
-  position: absolute;
-  right: 5px;
-  top: 5px;
-  border: none;
-  opacity: 0.4;
-  background: url(../images/icons/delete.png) center;
-}
-
-#dashboard #documents .document:hover .delete-document {
-  display: block;
-}
-
-#dashboard #documents .document .delete-document:hover {
-  opacity: 0.8;
-}
-
-#dashboard #documents .document .status {
-  position: absolute;
-  left: 20px;
-  top: 0px;
-  padding: 0 10px;
-  background: rgba(0,0,0, 0.4);
-  font-size: 12px;
-  font-weight: bold;
-  color: rgba(255,255,255, 0.8);
-}
-
-#dashboard #documents .document .status.published {
-  background: #66B620;
-}
-
-#dashboard #documents .document .title {
-  margin-top: 20px;
-  padding: 20px;
-  font-family: 'Baskerville', Georgia, serif;
-  font-size: 18px;
-}
-
-#dashboard #documents .document .author {
-  padding: 0 10px;
-  font-size: 14px;
-}
-
-#dashboard #documents .document .author a {
-  border: none;
-}
-
-#dashboard #documents .document .updated-at {
-  position: absolute;
-  left: 10px;
-  bottom: 10px;
-  color: #777;
-}
-
-#dashboard #documents .document .sync-state {
-  background: #eee;
-  border-radius: 3px;
-  position: absolute;
-  right: 10px;
-  bottom: 10px;
-  padding: 0 5px;
-  color: #777;
-}
-
-#dashboard #documents .document .sync-state.synced {
-  background: #D4F1BA;
-
-}*/
 
 /* Editor
 -------------------------------------------------------------------------------*/
@@ -598,7 +551,7 @@ body {
 
 /* Document Settings */
 
-.document-settings {
+.document-settings.shelf {
   width: 260px;
   padding: 20px;
   position: absolute;

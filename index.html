@@ -64,6 +64,7 @@
 
         <div class="actions">
           <a href="#new" class="action new-document"><i class="icon-plus"></i></a>
+          <a href="#logout" class="action logout"><i class="icon-off"></i></a>
         </div>
       </div>
 
@@ -105,8 +106,25 @@
     <!-- Dashboard -->
     <script type="text/html" name="dashboard">
       <div id="dashboard">
-        <div class="dashboard_shelf">
-          Hello Shelf
+        <div class="shelf">
+          <div class="user">
+            <div>Michael Aufreiter</div>
+          </div>
+
+          <!-- User-related document collections -->
+          <div class="collections">
+            <a href="#dashboard" class="collection active">My Documents <div class="count">10</div></a>
+            <a href="#dashboard/collaborations" class="collection">Collaborations <div class="count">5</div></a>
+            <a href="#dashboard/subscriptions" class="collection">Subscriptions <div class="count">6</div></a>
+          </div>
+
+          <!-- Recently opened docs -->
+          <div class="label">Recently viewed</div>
+          <div class="recent-documents">
+            <a href="#" class="recent-document">Evolutionary principles of modular gene regulation in yeasts</a>
+            <a href="#" class="recent-document">Substance A digital platform for content</a>
+            <a href="#" class="recent-document">Lorem Ipsum Deluxe</a>
+          </div>
         </div>
 
         <div class="documents">
@@ -134,6 +152,7 @@
       </div>
     </script>
 
+    <!-- Testtree -->
     <script type="text/html" name="test-tree">
       <div id="tests_<%=item.id%>"><%=item.name%>
           <% _.each(item, function(item) { %>
@@ -145,7 +164,6 @@
           <% }); %>
       </div>
     </script>
-
 
     <!-- Console -->
     <script type="text/html" name="console">
