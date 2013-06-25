@@ -114,21 +114,47 @@ Session.__prototype__ = function() {
     }
   };
 
-  this.listDocuments = function() {
-    if (!this.localStore) return [];
+  // List documents you have access to
+  this.listDocuments = function(cb) {
 
-    var documents = this.localStore.list();
-    var result = _.map(documents, function(doc) {
-      return {
-        title: doc.properties.title,
-        author: doc.meta.creator,
-        file: doc.id,
-        id: doc.id,
-        meta: doc.meta,
-        updated_at: doc.properties.updated_at
-      };
+    $.ajax({
+      dataType: "jsonp",
+      url: 'http://elife-converter.herokuapp.com/documents',
+      success: function(docs) {
+        var objects = [];
+        _.each(docs.objects, function(doc) {
+          objects.push({
+            id: doc._id,
+            name: doc.name,
+            title: doc.name,
+            type: "document",
+            authors: doc.authors,
+            keywords: doc.keywords,
+            subjects: doc.subjects,
+            organisms: doc.organisms,
+            published_at: doc.published_at
+          });
+        });
+
+        var kenSession = new Ken.Session({
+          collection: objects,
+          facets: [
+            {
+              "property": "subjects",
+              "name": "Subjects"
+            },
+            {
+              "property": "organisms",
+              "name": "Organisms"
+            }
+          ]
+        });
+        cb(null, kenSession);
+      },
+      error: function() {
+        cb('error');
+      }
     });
-    return result;
   };
 
   // Load new Document from localStore
@@ -138,6 +164,7 @@ Session.__prototype__ = function() {
     this.initDoc();
     return this.document;
   };
+
 
   this.deleteDocument = function(id) {
     this.localStore.delete(id);

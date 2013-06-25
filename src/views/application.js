@@ -207,12 +207,18 @@
     },
 
     dashboard: function() {
+      var that = this;
       if (!Substance.session.user()) return this.login();
 
       if (this.view) this.view.dispose();
-      this.view = new sc.views.Dashboard();
-      this.render();
-      Substance.router.navigate('/');
+
+      Substance.session.listDocuments(function(err, documents) {
+        console.log('listing..', documents);
+        that.view = new sc.views.Dashboard({model: documents});
+        that.render();
+        Substance.router.navigate('/');
+      });
+
       return;
     },
 

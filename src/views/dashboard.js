@@ -15,10 +15,11 @@
     },
 
     render: function() {
-      var documents = Substance.session.listDocuments();
-      this.$el.html(_.tpl('dashboard', {
-        documents: documents
-      }));
+      this.$el.html(_.tpl('dashboard', {}));
+
+      // Render document browser
+      this.$('.documents').empty();
+      this.$('.documents').append(new Ken.Browser({model: this.model}).render().el);
       return this;
     },
 
@@ -26,5 +27,4 @@
       console.log('disposing dashboard view');
       this.disposeBindings();
     }
-
   });
