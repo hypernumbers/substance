@@ -89,7 +89,6 @@
   width: 390px;
 }
 
-
 #facets .filter .available-values a.value:hover {
   background: rgba(0,0,0, 0.1);
 }
@@ -132,7 +131,6 @@
   left: 0px;
   right: 440px;
   bottom: 0px;
-  padding: 20px;
   overflow: auto;
   background: #fff;
 }
@@ -140,7 +138,7 @@
 #matrix .item {
   position: relative;
   display: block;
-  width: 46%;
+  width: 50%;
   height: 200px;
   float: left;
   cursor: pointer;
@@ -153,8 +151,22 @@
   -webkit-transition-duration: 0.2s;
   -moz-transition-duration: 0.2s;
   transition-duration: 0.2s;
-  margin-bottom: 30px;
-  margin-right: 20px;
+}
+
+#matrix .item .inner {
+  position: absolute;
+  top: 0px;
+  bottom: 0px;
+  right: 0px;
+  left: 0px;
+  /*background: #fff;*/
+  border-right: 1px solid #eee;
+  border-bottom: 1px solid #eee;
+
+}
+
+#matrix .item:hover .inner {
+  background: rgba(0,0,0,0.01);
 }
 
 #matrix .item:hover {
@@ -193,7 +205,7 @@
   font-size: 18px;
   line-height: 22px;
   text-align: left;
-  padding: 0 10px;
+  padding: 0 20px;
 }
 
 #matrix .item:hover .name {
@@ -210,8 +222,8 @@
   /*color: #960;*/
   color: #666;
   font-size: 12px;
-  padding: 10px;
-  border-bottom: 1px solid #eee;
+  padding: 10px 20px;
+  /*border-bottom: 1px solid #eee;*/
 }
 
 #matrix .item .authors {
@@ -219,7 +231,7 @@
   font-size: 14px;
   line-height: 16px;
   text-align: left;
-  padding: 20px 10px 0 10px;
+  padding: 20px 20px 0 20px;
 }
 
 #matrix .item .published_at {

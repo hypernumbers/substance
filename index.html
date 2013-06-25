@@ -567,23 +567,25 @@
     <!-- Ken.Item  -->
     <script type="text/x-ejs-template" name="item">
       <a href="#<%= item.id.replace('e', '') %>" class="item" id="<%= item.id %>" data-id="<%= item.id %>">
-        <div class="article-type">
-          Article
-          <div class="published_at">
-            <% if (item.published_at) { %>
-              <%= new Date(item.published_at).toDateString() %>
-            <% } %>
+        <div class="inner">
+          <div class="article-type">
+            Article
+            <div class="published_at">
+              <% if (item.published_at) { %>
+                <%= new Date(item.published_at).toDateString() %>
+              <% } %>
+            </div>
           </div>
+          <% if (matches.length > 0) { %>
+            <div class="markers">
+              <% _.each(matches, function(match) { %>
+                <div class="marker" style="background: <%= match.color %>"></div>
+              <% }); %>
+            </div>
+          <% } %>
+          <div class="name"><%= item.name.substr(0, 300) %></div>
+          <div class="authors"><%= item.authors.join(', ') %></div>
         </div>
-        <% if (matches.length > 0) { %>
-          <div class="markers">
-            <% _.each(matches, function(match) { %>
-              <div class="marker" style="background: <%= match.color %>"></div>
-            <% }); %>
-          </div>
-        <% } %>
-        <div class="name"><%= item.name.substr(0, 300) %></div>
-        <div class="authors"><%= item.authors.join(', ') %></div>
       </a>
     </script>
 
