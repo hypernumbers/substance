@@ -520,11 +520,6 @@ body {
   padding-right: 10px;
 }
 
-#dashboard .shelf .recent-documents a {
-  margin-bottom: 10px;
-  display: block;
-  border: none;
-}
 
 #dashboard .documents {
   position: fixed;

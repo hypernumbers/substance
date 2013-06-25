@@ -55,15 +55,16 @@
         <div class="views">
           <!--<a href="#" class="toggle-view browse"><i class="icon-th-large"></i></a>-->
           <a href="#" class="toggle-view dashboard" ><i class="icon-user"></i></a>
-
           <% if (document) { %>
             <a href="#" class="toggle-view document"><i class="icon-edit"></i></a>
           <% } %>
-          
         </div>
 
         <div class="actions">
           <a href="#new" class="action new-document"><i class="icon-plus"></i></a>
+          <% if (Substance.session.env === "test") { %>
+            <a href="#tests" class="action testsuite" ><i class="icon-tasks"></i></a>
+          <% } %>
           <a href="#logout" class="action logout"><i class="icon-off"></i></a>
         </div>
       </div>
@@ -116,15 +117,9 @@
             <a href="#dashboard" class="collection active">My Documents <div class="count">10</div></a>
             <a href="#dashboard/collaborations" class="collection">Collaborations <div class="count">5</div></a>
             <a href="#dashboard/subscriptions" class="collection">Subscriptions <div class="count">6</div></a>
+            <a href="#dashboard/subscriptions" class="collection">Recently Opened <div class="count">6</div></a>
           </div>
 
-          <!-- Recently opened docs -->
-          <div class="label">Recently viewed</div>
-          <div class="recent-documents">
-            <a href="#" class="recent-document">Evolutionary principles of modular gene regulation in yeasts</a>
-            <a href="#" class="recent-document">Substance A digital platform for content</a>
-            <a href="#" class="recent-document">Lorem Ipsum Deluxe</a>
-          </div>
         </div>
 
         <div class="documents">

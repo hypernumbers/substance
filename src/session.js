@@ -157,12 +157,126 @@ Session.__prototype__ = function() {
     });
   };
 
+
   // Load new Document from localStore
-  this.loadDocument = function(id) {
-    var doc = this.localStore.get(id);
-    this.document = new Session.Document(this, doc);
-    this.initDoc();
-    return this.document;
+  this.loadDocument = function(id, cb) {
+    var that = this;
+    // var doc = this.localStore.get(id);
+    // this.document = new Session.Document(this, doc);
+
+    $.ajax({
+      dataType: "jsonp",
+      url: 'http://elife-converter.herokuapp.com/documents/'+id,
+      success: function(eLilfeDoc) {
+        // Construct on the fly
+        console.log('loaded', document);
+
+        // Start with an empty doc
+        var doc = new Substance.Document({id: id});
+
+
+        // Supports text and heading nodes
+        function insert(node) {
+          var id = _.htmlId(node.id).replace('-', '_');
+          doc.exec(["create", {
+            "id": id,
+            "type": node.type,
+            "content": node.content
+          }]);
+
+          console.log('adding ', id, ' to -1' );
+          // position
+          doc.exec(["position", "content", {"nodes": [id], "target": -1 }]);
+        }
+
+        function annotate(a) {
+          var type = a.type;
+
+          if (type === "figure_reference") type = "idea";
+          if (type === "publication_reference") type = "question";
+          if (type === "underline") type = "emphasis";
+
+          if (!_.include(["idea", "question", "emphasis", "strong", "link"], type)) {
+            // console.log('skipping ', type);
+            return; // skip
+          } else {
+            // console.log('adding ', type);
+          }
+          if (a.key !== "content") return; // skip elife specific annotations
+
+          var id = _.htmlId(a.id);
+          var target = _.htmlId(a.source);
+
+          // console.log('annotating..');
+          doc.exec(["annotate", target, a.key, {
+            "id": id,
+            "type": type,
+            "range": {start: a.pos[0], length: a.pos[1]}
+          }]);
+          
+        }
+
+        _.each(eLilfeDoc.views.content, function(n) {
+          var node = eLilfeDoc.nodes[n];
+          if (_.include(["text", "heading"], node.type)) {
+            insert(node);
+          }
+        });
+
+        // Add annotations
+        _.each(eLilfeDoc.nodes, function(node) {
+          // console.log('YYY', node.type, doc.schema.types);
+          // var baseType = doc.schema.baseType(node.type);
+
+          annotate(node);
+          // if (node.type === 'figure_reference') {
+          //   // turn into ideas
+          //   annotate(node);
+          //   // console.log('figref found', node);
+          // }
+
+          // if (baseType === 'annotation') {
+          //   var id = _.htmlId(node.id);
+
+          //   // this.exec(["annotate", "t2", "content", {
+          //   //   "id": id,
+          //   //   "type": "idea",
+          //   //   "range": {start: 1, length: 3}
+          //   // }]);
+          // }
+          // console.log('XX', );
+        });
+
+        that.document = doc;
+        that.initDoc();
+
+        // console.log(doc.nodes);
+
+        // var objects = [];
+        // _.each(docs.objects, function(doc) {
+        //   objects.push({
+        //     id: doc._id,
+        //     name: doc.name,
+        //     title: doc.name,
+        //     type: "document",
+        //     authors: doc.authors,
+        //     keywords: doc.keywords,
+        //     subjects: doc.subjects,
+        //     organisms: doc.organisms,
+        //     published_at: doc.published_at
+        //   });
+        // });
+        cb(null, doc);
+      },
+      error: function() {
+        cb('error');
+      }
+    });
+
+    console.log('loading document', id);
+
+    // this.initDoc();
+    // return this.document;
   };
 
 

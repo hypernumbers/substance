@@ -142,13 +142,24 @@
 
     // Toggle document view
     document: function(id) {
-      // this.session.loadDocument(id);
+      var that = this;
+      this.session.loadDocument(id, function(err, doc) {
 
-      // if (this.view) this.view.dispose();
-      // this.view = new sc.views.Editor({ model: this.session });
+        if (that.view) that.view.dispose();
+        that.view = new sc.views.Editor({ model: that.session });
+
+        that.render();
+        Substance.router.navigate('documents/'+that.session.document.id, false);
+
+        // Shortcuts
+        // window.doc = session.document;
+        that.listenForDocumentChanges();
+      
+      });
+      
       // this.render();
       // this.listenForDocumentChanges();
-      this.newDocument();
+      // this.newDocument();
     },
 
     // Toggle document view
@@ -342,7 +353,6 @@
       key('shift+tab', _.bind(function(e) {
         this.trigger('message:dedent', e);
       }, this));
-
 
       // Undo / Redo
       // ----------
