@@ -112,12 +112,11 @@
             <div>Michael Aufreiter</div>
           </div>
 
-          <!-- User-related document collections -->
+          <!-- User-specific document collections -->
           <div class="collections">
-            <a href="#dashboard" class="collection active">My Documents <div class="count">10</div></a>
-            <a href="#dashboard/collaborations" class="collection">Collaborations <div class="count">5</div></a>
-            <a href="#dashboard/subscriptions" class="collection">Subscriptions <div class="count">6</div></a>
-            <a href="#dashboard/subscriptions" class="collection">Recently Opened <div class="count">6</div></a>
+            <% _.each(collections, function(c) { %>
+              <a href="#dashboard/<%= c.id %>" class="collection<%= c.id === active_collection ? ' active' : '' %>"><%= c.name %> <div class="count"><%= c.documents.length %></div></a>  
+            <% }); %>
           </div>
 
         </div>
@@ -586,7 +585,6 @@
 
     <!-- Ken.Facets  -->
     <script type="text/x-ejs-template" name="facets">
-      <div class="article-count">Showing <%= collection.length %> articles</div>
       <% var count = 0; %>
       <% _.each(facets, function(f, key) { %>
         <div class="filter <%= key %>">

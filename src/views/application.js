@@ -217,18 +217,22 @@
       this.listenForDocumentChanges();
     },
 
-    dashboard: function() {
+    // User dashboard
+    // ---------------
+
+    dashboard: function(collection) {
       var that = this;
+
+      if (!collection) collection = 'my_documents';
+      
       if (!Substance.session.user()) return this.login();
 
       if (this.view) this.view.dispose();
-
-      Substance.session.listDocuments(function(err, documents) {
-        console.log('listing..', documents);
-        that.view = new sc.views.Dashboard({model: documents});
-        that.render();
-        Substance.router.navigate('/');
+      that.view = new sc.views.Dashboard({
+        model: Substance.session.getDashboard(collection)
       });
+      that.render();
+      Substance.router.navigate('/dashboard/'+collection);
 
       return;
     },

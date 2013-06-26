@@ -165,9 +165,14 @@ Session.__prototype__ = function() {
     }
   };
 
-  // List documents you have access to
-  this.listDocuments = function(cb) {
-    var c = this.library.getCollection('my_documents');
+  // List documents for a given collection
+  // --------
+  // 
+  // TODO: let collection describe which facets should be exposed
+
+
+  this.listDocuments = function(collection) {
+    var c = this.library.getCollection(collection);
     
     var kenSession = new Ken.Session({
       collection: c.documents,
@@ -182,9 +187,35 @@ Session.__prototype__ = function() {
         }
       ]
     });
-    cb(null, kenSession);
+    return kenSession;
   };
 
+  // Get Dashboard Data
+  // --------
+  // 
+
+  this.getDashboard = function(collection) {
+    return {
+      "collections": [
+        this.library.get('my_documents'),
+        this.library.get('my_collaborations')
+      ],
+      "active_collection": collection,
+      "documents": new Ken.Session({
+        collection: this.library.getCollection(collection).documents,
+        facets: [
+          {
+            "property": "publications",
+            "name": "Networks"
+          },
+          {
+            "property": "keywords",
+            "name": "Keywords"
+          }
+        ]
+      })
+    };
+  };
 
   // Load new Document from localStore
   this.loadDocument = function(id, cb) {

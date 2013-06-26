@@ -3,7 +3,7 @@
 
 sc.views.Dashboard = Substance.View.extend({
   id: 'container',
-  
+
   events: {
     'click .delete-document': '_deleteDocument',
   },
@@ -16,11 +16,11 @@ sc.views.Dashboard = Substance.View.extend({
   },
 
   render: function() {
-    this.$el.html(_.tpl('dashboard', {}));
+    this.$el.html(_.tpl('dashboard', this.model));
 
     // Render document browser
     this.$('.documents').empty();
-    this.$('.documents').append(new Ken.Browser({model: this.model}).render().el);
+    this.$('.documents').append(new Ken.Browser({model: this.model.documents}).render().el);
     return this;
   },
 

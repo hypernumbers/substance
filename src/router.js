@@ -11,6 +11,7 @@ var Router = Backbone.Router.extend({
     this.route('console/:document', 'tests', app.console);
     this.route('new', 'newDocument', this.newDocument);
     this.route('dashboard', 'dashboard', app.dashboard);
+    this.route('dashboard/:collection', 'dashboard', app.dashboard);
     this.route('', 'start', app.dashboard);
     this.route('login', 'login', app.login);
     this.route('logout', 'logout', app.login);
