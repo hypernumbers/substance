@@ -32,10 +32,8 @@ Session.__prototype__ = function() {
   //
 
   this.seedLibrary = function() {
-    console.log('seeding the library', LIBRARY_SEED);
     var ids = [];
     _.each(LIBRARY_SEED.objects, function(o) {
-      // console.log(o);
       
       var op = Data.Graph.Create({
         id: o._id,
@@ -73,13 +71,6 @@ Session.__prototype__ = function() {
       documents: ids.slice(10, 20)
     });
     this.library.exec(op2);
-
-    // // console.log('THE COLLECTION', this.library.get('my_documents'));
-    var c = this.library.getCollection('my_documents');
-    console.log('MY COLLECTION', c);
-
-    // var c2 = this.library.getCollection('my_collaborations');
-    // console.log('MY COLLABORATIONS', c2);
   };
 
   this.getUserStore = function(username) {
@@ -178,7 +169,6 @@ Session.__prototype__ = function() {
   this.listDocuments = function(cb) {
     var c = this.library.getCollection('my_documents');
     
-
     var kenSession = new Ken.Session({
       collection: c.documents,
       facets: [
@@ -193,45 +183,6 @@ Session.__prototype__ = function() {
       ]
     });
     cb(null, kenSession);
-
-    // $.ajax({
-    //   dataType: "jsonp",
-    //   url: 'http://elife-converter.herokuapp.com/documents',
-    //   success: function(docs) {
-    //     var objects = [];
-    //     _.each(docs.objects, function(doc) {
-    //       objects.push({
-    //         id: doc._id,
-    //         name: doc.name,
-    //         title: doc.name,
-    //         type: "document",
-    //         authors: doc.authors,
-    //         keywords: doc.keywords,
-    //         subjects: doc.subjects,
-    //         organisms: doc.organisms,
-    //         published_at: doc.published_at
-    //       });
-    //     });
-
-    //     var kenSession = new Ken.Session({
-    //       collection: objects,
-    //       facets: [
-    //         {
-    //           "property": "networks",
-    //           "name": "Networks"
-    //         },
-    //         {
-    //           "property": "keywords",
-    //           "name": "Keywords"
-    //         }
-    //       ]
-    //     });
-    //     cb(null, kenSession);
-    //   },
-    //   error: function() {
-    //     cb('error');
-    //   }
-    // });
   };
 
 
