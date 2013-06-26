@@ -4,6 +4,9 @@ var Substance = root.Substance;
 var util = Substance.util;
 var _ = root._;
 var ot = Substance.Chronicle.ot;
+var Data = root.Substance.Data;
+var Library = root.Substance.Library;
+
 
 // Substance.Session
 // -----------------
@@ -18,9 +21,66 @@ var Session = function(options) {
   this.env = options.env;
   this.chronicle = Substance.Chronicle.create(Substance.Chronicle.Index.create());
   this.initStores();
+  this.library = new Library();
+  this.seedLibrary();
 };
 
 Session.__prototype__ = function() {
+
+  // Temporary library seeding
+  // -----------------
+  //
+
+  this.seedLibrary = function() {
+    console.log('seeding the library', LIBRARY_SEED);
+    var ids = [];
+    _.each(LIBRARY_SEED.objects, function(o) {
+      // console.log(o);
+      
+      var op = Data.Graph.Create({
+        id: o._id,
+        type: "article",
+        title: o.name, // derive dynamically
+        keywords: o.keywords,
+        creator: o.authors[0] || "Michael Aureiter", // derive dynamically
+        collaborators: o.authors,
+        publications: o.subjects, // derive dynamically
+        published_at: o.published_at, // derive dynamically
+        created_at: o.published_at,
+        updated_at: o.published_at
+      });
+
+      this.library.exec(op);
+      ids.push(o._id);
+    }, this);
+
+
+    // Create my documents collection
+    var op1 = Data.Graph.Create({
+      id: "my_documents",
+      type: "collection",
+      name: "My Documents",
+      documents: ids.splice(0, 40)
+    });
+
+    this.library.exec(op1);
+
+    // Create collaborations collection
+    var op2 = Data.Graph.Create({
+      id: "my_collaborations",
+      type: "collection",
+      name: "My Collaborations",
+      documents: ids.slice(10, 20)
+    });
+    this.library.exec(op2);
+
+    // // console.log('THE COLLECTION', this.library.get('my_documents'));
+    var c = this.library.getCollection('my_documents');
+    console.log('MY COLLECTION', c);
+
+    // var c2 = this.library.getCollection('my_collaborations');
+    // console.log('MY COLLABORATIONS', c2);
+  };
 
   this.getUserStore = function(username) {
     var scope = username ? this.env+":"+username : this.env;
@@ -116,64 +176,77 @@ Session.__prototype__ = function() {
 
   // List documents you have access to
   this.listDocuments = function(cb) {
+    var c = this.library.getCollection('my_documents');
+    
 
-    $.ajax({
-      dataType: "jsonp",
-      url: 'http://elife-converter.herokuapp.com/documents',
-      success: function(docs) {
-        var objects = [];
-        _.each(docs.objects, function(doc) {
-          objects.push({
-            id: doc._id,
-            name: doc.name,
-            title: doc.name,
-            type: "document",
-            authors: doc.authors,
-            keywords: doc.keywords,
-            subjects: doc.subjects,
-            organisms: doc.organisms,
-            published_at: doc.published_at
-          });
-        });
-
-        var kenSession = new Ken.Session({
-          collection: objects,
-          facets: [
-            {
-              "property": "subjects",
-              "name": "Subjects"
-            },
-            {
-              "property": "organisms",
-              "name": "Organisms"
-            }
-          ]
-        });
-        cb(null, kenSession);
-      },
-      error: function() {
-        cb('error');
-      }
+    var kenSession = new Ken.Session({
+      collection: c.documents,
+      facets: [
+        {
+          "property": "publications",
+          "name": "Networks"
+        },
+        {
+          "property": "keywords",
+          "name": "Keywords"
+        }
+      ]
     });
+    cb(null, kenSession);
+
+    // $.ajax({
+    //   dataType: "jsonp",
+    //   url: 'http://elife-converter.herokuapp.com/documents',
+    //   success: function(docs) {
+    //     var objects = [];
+    //     _.each(docs.objects, function(doc) {
+    //       objects.push({
+    //         id: doc._id,
+    //         name: doc.name,
+    //         title: doc.name,
+    //         type: "document",
+    //         authors: doc.authors,
+    //         keywords: doc.keywords,
+    //         subjects: doc.subjects,
+    //         organisms: doc.organisms,
+    //         published_at: doc.published_at
+    //       });
+    //     });
+
+    //     var kenSession = new Ken.Session({
+    //       collection: objects,
+    //       facets: [
+    //         {
+    //           "property": "networks",
+    //           "name": "Networks"
+    //         },
+    //         {
+    //           "property": "keywords",
+    //           "name": "Keywords"
+    //         }
+    //       ]
+    //     });
+    //     cb(null, kenSession);
+    //   },
+    //   error: function() {
+    //     cb('error');
+    //   }
+    // });
   };
 
 
   // Load new Document from localStore
   this.loadDocument = function(id, cb) {
     var that = this;
-    // var doc = this.localStore.get(id);
-    // this.document = new Session.Document(this, doc);
 
     $.ajax({
       dataType: "jsonp",
       url: 'http://elife-converter.herokuapp.com/documents/'+id,
       success: function(eLilfeDoc) {
         // Construct on the fly
-        console.log('loaded', document);
 
         // Start with an empty doc
         var doc = new Substance.Document({id: id});
-
 
         // Supports text and heading nodes
         function insert(node) {
@@ -184,7 +257,6 @@ Session.__prototype__ = function() {
             "content": node.content
           }]);
 
-          console.log('adding ', id, ' to -1' );
           // position
           doc.exec(["position", "content", {"nodes": [id], "target": -1 }]);
         }
@@ -225,58 +297,18 @@ Session.__prototype__ = function() {
 
         // Add annotations
         _.each(eLilfeDoc.nodes, function(node) {
-          // console.log('YYY', node.type, doc.schema.types);
-          // var baseType = doc.schema.baseType(node.type);
-
           annotate(node);
-          // if (node.type === 'figure_reference') {
-          //   // turn into ideas
-          //   annotate(node);
-          //   // console.log('figref found', node);
-          // }
-
-          // if (baseType === 'annotation') {
-          //   var id = _.htmlId(node.id);
-
-          //   // this.exec(["annotate", "t2", "content", {
-          //   //   "id": id,
-          //   //   "type": "idea",
-          //   //   "range": {start: 1, length: 3}
-          //   // }]);
-          // }
-          // console.log('XX', );
         });
 
         that.document = doc;
         that.initDoc();
 
-        // console.log(doc.nodes);
-
-        // var objects = [];
-        // _.each(docs.objects, function(doc) {
-        //   objects.push({
-        //     id: doc._id,
-        //     name: doc.name,
-        //     title: doc.name,
-        //     type: "document",
-        //     authors: doc.authors,
-        //     keywords: doc.keywords,
-        //     subjects: doc.subjects,
-        //     organisms: doc.organisms,
-        //     published_at: doc.published_at
-        //   });
-        // });
         cb(null, doc);
       },
       error: function() {
         cb('error');
       }
     });
-
-    console.log('loading document', id);
-
-    // this.initDoc();
-    // return this.document;
   };
 
 
