@@ -33,16 +33,63 @@ Session.__prototype__ = function() {
 
   this.seedLibrary = function() {
     var ids = [];
+
+    // Create some sample networks
+    var networks = [
+      {
+        id: "javascript",
+        type: "network",
+        name: "Javascript"
+      },
+      {
+        id: "public",
+        type: "network",
+        name: "Public"
+      },
+      {
+        id: "science",
+        type: "network",
+        name: "Science"
+      }
+    ];
+
+    _.each(networks, function(n) {
+      this.library.exec(Data.Graph.Create(n));
+    }, this);
+
+
+    // Create some sample users
+    var users = [
+      {
+        id: "michael",
+        type: "user",
+        name: "Michael Aufreiter"
+      },
+      {
+        id: "oliver",
+        type: "user",
+        name: "Oliver Buchtala"
+      },
+      {
+        id: "samo",
+        type: "network",
+        name: "Samo Korosec"
+      }
+    ];
+
+    _.each(users, function(u) {
+      this.library.exec(Data.Graph.Create(u));
+    }, this);
+
     _.each(LIBRARY_SEED.objects, function(o) {
-      
       var op = Data.Graph.Create({
         id: o._id,
         type: "article",
         title: o.name, // derive dynamically
         keywords: o.keywords,
-        creator: o.authors[0] || "Michael Aureiter", // derive dynamically
-        collaborators: o.authors,
-        publications: o.subjects, // derive dynamically
+        creator: "michael", // derive dynamically
+        collaborators: ["michael", "oliver"], // empty for now
+        publications: ["javascript", "public", "science"], // derive dynamically
         published_at: o.published_at, // derive dynamically
         created_at: o.published_at,
         updated_at: o.published_at
@@ -51,7 +98,6 @@ Session.__prototype__ = function() {
       this.library.exec(op);
       ids.push(o._id);
     }, this);
-
 
     // Create my documents collection
     var op1 = Data.Graph.Create({
@@ -73,6 +119,27 @@ Session.__prototype__ = function() {
     this.library.exec(op2);
   };
 
+  // Get property from document entry
+  this.get = function(property) {
+    var doc = this.document;
+
+    var entry = this.library.get(doc.id);
+    var propertyType = this.library.schema.propertyType('entry', property);
+    var val = entry[property];
+
+    if (Data.isValueType(propertyType)) {
+      return entry[property];
+    } else {
+      if (_.isArray(val)) {
+        return _.map(val, function(id) {
+          return this.library.get(id);
+        }, this);
+      } else {
+        return this.library.get(val);
+      }
+    }
+  };
+
   this.getUserStore = function(username) {
     var scope = username ? this.env+":"+username : this.env;
 
@@ -85,7 +152,6 @@ Session.__prototype__ = function() {
     if (Substance.LocalStore) {
       return new Substance.LocalStore(scope);
     }
-
     return new Substance.MemoryStore();
   };
 
@@ -93,6 +159,7 @@ Session.__prototype__ = function() {
     if (!this.pendingSync) return;
     this.replicate();
   }, 4000);
+
 
   this.getClient = function() {
     var token = this.token();
@@ -165,30 +232,6 @@ Session.__prototype__ = function() {
     }
   };
 
-  // List documents for a given collection
-  // --------
-  // 
-  // TODO: let collection describe which facets should be exposed
-
-
-  this.listDocuments = function(collection) {
-    var c = this.library.getCollection(collection);
-    
-    var kenSession = new Ken.Session({
-      collection: c.documents,
-      facets: [
-        {
-          "property": "publications",
-          "name": "Networks"
-        },
-        {
-          "property": "keywords",
-          "name": "Keywords"
-        }
-      ]
-    });
-    return kenSession;
-  };
 
   // Get Dashboard Data
   // --------
@@ -308,7 +351,7 @@ Session.__prototype__ = function() {
     });
   };
 
-  // Select a document
+  // Select document node(s)
   // Triggers re-render of comments panel etc.
   this.select = function(nodes, options) {
 
@@ -469,22 +512,34 @@ Session.__prototype__ = function() {
     });
   };
 
+
   // Load Collaborators for current document
-  this.loadCollaborators = function(cb) {
-    var doc = this.document;
-    var that = this;
-    this.client.listCollaborators(doc.id, function(err, collaborators) {
-      if (err) return cb(err);
-      //console.log('client.loadCollaborators: collaborators', collaborators);
-      that.collaborators = collaborators;
-      cb(null);
-    });
-  };
+  // --------
+  // No longer used by the view
+  // 
+  // We now keep collaboration info redundant in the library
+
+  // this.loadCollaborators = function(cb) {
+  //   var doc = this.document;
+  //   var that = this;
+  //   this.client.listCollaborators(doc.id, function(err, collaborators) {
+  //     if (err) return cb(err);
+  //     //console.log('client.loadCollaborators: collaborators', collaborators);
+  //     that.collaborators = collaborators;
+  //     cb(null);
+  //   });
+  // };
+
 
   // Create new collaborator on the server
+  // --------
+  // 
+  // Collaborator also gets registered in the library (document entry)
+
   this.createCollaborator = function(collaborator, cb) {
     var doc = this.document;
     var that = this;
+
     this.client.createCollaborator(doc.id, collaborator, function(err) {
       if (err) return cb(err);
       that.loadCollaborators(cb);
@@ -492,6 +547,10 @@ Session.__prototype__ = function() {
   };
 
   // Delete collaborator on the server
+  // --------
+  // 
+  // Collaborator also gets removed from the document entry in the library
+
   this.deleteCollaborator = function(collaborator, cb) {
     var that = this;
     this.client.deleteCollaborator(collaborator, function(err) {
@@ -500,23 +559,42 @@ Session.__prototype__ = function() {
     });
   };
 
+  // Set a property in user scope
+  // --------
+  // 
+
   this.setProperty = function(key, val) {
     Substance.settings.setItem(this.env+":"+key, val);
   };
+
+  // Read a property in user scope
+  // --------
+  // 
 
   this.getProperty = function(key) {
     return Substance.settings.getItem(this.env+":"+key);
   };
 
+  // Display logged in user
+  // --------
+  // 
+
   this.user = function() {
     return this.getProperty('user') || "";
   };
+
+  // Get current login toekn
+  // --------
+  // 
 
   this.token = function() {
     return this.getProperty('api-token') || "";
   };
 
   // Authenticate session
+  // --------
+  // 
+
   this.authenticate = function(username, password, cb) {
     var that = this;
     this.client.authenticate(username, password, function(err, data) {
@@ -529,6 +607,10 @@ Session.__prototype__ = function() {
     });
   };
 
+  // Forget login token
+  // --------
+  // 
+
   this.logout = function() {
     this.localStore = null;
     this.remoteStore = null;
@@ -536,11 +618,19 @@ Session.__prototype__ = function() {
     this.setProperty('api-token', '');
   };
 
+
+  // Authenticated or net
+  // --------
+  // 
+
   this.authenticated = function() {
     return !!this.getProperty("user");
   };
 
   // Create a new user on the server
+  // --------
+  // 
+
   this.createUser = function(user, cb) {
     this.client.createUser(user, cb);
   };
@@ -561,6 +651,9 @@ Session.__prototype__ = function() {
     }, this);
   };
 };
+
+
+
 
 Session.prototype = new Session.__prototype__();
 _.extend(Session.prototype, util.Events);
@@ -707,7 +800,6 @@ Session.DocumentStore.__prototype__ = function() {
 };
 
 Session.DocumentStore.prototype = new Session.DocumentStore.__prototype__();
-
 
 
 
