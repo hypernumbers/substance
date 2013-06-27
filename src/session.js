@@ -252,24 +252,17 @@ Session.__prototype__ = function() {
           if (type === "publication_reference") type = "question";
           if (type === "underline") type = "emphasis";
 
-          if (!_.include(["idea", "question", "emphasis", "strong", "link"], type)) {
-            // console.log('skipping ', type);
-            return; // skip
-          } else {
-            // console.log('adding ', type);
-          }
+          if (!_.include(["idea", "question", "emphasis", "strong", "link"], type)) return; // skip
           if (a.key !== "content") return; // skip elife specific annotations
 
           var id = _.htmlId(a.id);
           var target = _.htmlId(a.source);
 
-          // console.log('annotating..');
           doc.exec(["annotate", target, a.key, {
             "id": id,
             "type": type,
             "range": {start: a.pos[0], length: a.pos[1]}
           }]);
-          
         }
 
         _.each(eLilfeDoc.views.content, function(n) {
@@ -294,7 +287,6 @@ Session.__prototype__ = function() {
       }
     });
   };
-
 
   this.deleteDocument = function(id) {
     this.localStore.delete(id);
@@ -347,9 +339,9 @@ Session.__prototype__ = function() {
   };
 
   this.createPublication = function(network, cb) {
-    var doc = this.document;
-
     var that = this;
+    var doc = this.document;
+    
     this.client.createPublication(doc.id, network, function(err) {
       if (err) return cb(err);
       that.loadPublications(cb);

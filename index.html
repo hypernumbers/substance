@@ -53,19 +53,23 @@
       <!-- Substance Main Menu -->
       <div id="menu">
         <div class="views">
-          <!--<a href="#" class="toggle-view browse"><i class="icon-th-large"></i></a>-->
-          <a href="#" class="toggle-view dashboard" ><i class="icon-user"></i></a>
+          <a href="#" class="toggle-view browse"><i class="icon-th-large"></i></a>
+          <% if (user) { %>
+            <a href="#" class="toggle-view dashboard" ><i class="icon-user"></i></a>
+          <% } %>
           <% if (document) { %>
             <a href="#" class="toggle-view document"><i class="icon-edit"></i></a>
           <% } %>
         </div>
 
         <div class="actions">
-          <a href="#new" class="action new-document"><i class="icon-plus"></i></a>
-          <% if (Substance.session.env === "test") { %>
-            <a href="#tests" class="action testsuite" ><i class="icon-tasks"></i></a>
+          <% if (user) { %>
+            <a href="#new" class="action new-document"><i class="icon-plus"></i></a>
+            <% if (Substance.session.env === "test") { %>
+              <a href="#tests" class="action testsuite" ><i class="icon-tasks"></i></a>
+            <% } %>
+            <a href="#logout" class="action logout"><i class="icon-off"></i></a>
           <% } %>
-          <a href="#logout" class="action logout"><i class="icon-off"></i></a>
         </div>
       </div>
 
