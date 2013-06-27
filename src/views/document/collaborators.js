@@ -4,31 +4,34 @@ sc.views.Collaborators = Substance.View.extend({
   // ------
 
   events: {
-    'submit #add_collaborator_form': 'addCollaborator',
-    'click .remove-collaborator': 'removeCollaborator'
+    'click .create-collaborator': '_createCollaborator',
+    'click .delete-collaborator': '_deleteCollaborator'
   },
 
   // Handlers
   // --------
 
-  addCollaborator: function(e) {
-    var collaborator = this.$('#collaborator').val();
+  _createCollaborator: function(e) {
+
+    var collaborator = this.$('#new_collaborator').val();
+    console.log('creating a new collaborator ...', collaborator);
     var that = this;
 
     Substance.session.createCollaborator(collaborator, function(err) {
-      that.render();
+      that.render(); // re-render
     });
     return false;
   },
 
-  removeCollaborator: function(e) {
-    var id = $(e.currentTarget).attr('data-id');
-    var that = this;
+  _deleteCollaborator: function(e) {
+    console('meeh');
+    // var id = $(e.currentTarget).attr('data-id');
+    // var that = this;
     
-    Substance.session.deleteCollaborator(id, function(err) {
-      that.render();
-    });
-    return false;
+    // Substance.session.deleteCollaborator(id, function(err) {
+    //   that.render();
+    // });
+    // return false;
   },
 
   initialize: function() {
@@ -36,11 +39,7 @@ sc.views.Collaborators = Substance.View.extend({
   },
 
   render: function () {
-    if (this.model.collaborators) {
-      this.$el.html(_.tpl('document_collaborators', this.model)); 
-    } else {
-      this.$el.html('loading...');
-    }
+    this.$el.html(_.tpl('document_collaborators', this.model)); 
     return this;
   },
 

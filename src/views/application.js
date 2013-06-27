@@ -129,6 +129,7 @@
       // UI update
       _.delay(function() {
         that.$('#header .sync').removeClass('active');
+        
         // Update status
         if (err) this.$('#header .sync').removeClass('disabled').addClass('error');
 

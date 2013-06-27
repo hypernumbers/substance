@@ -1,16 +1,19 @@
-sc.views.PublishSettings = Substance.View.extend({
+sc.views.Publications = Substance.View.extend({
 
   // Events
   // ------
 
   events: {
-    'click .add-publication': 'addPublication',
-    'click .delete-publication': 'deletePublication',
-    'click .create-version': 'createVersion',
-    'click .unpublish-document': 'unpublish',
+    'click .add-publication': '_addPublication',
+    'click .delete-publication': '_deletePublication',
+    'click .create-version': '_createVersion',
+    'click .unpublish-document': '_unpublish',
   },
 
-  createVersion: function() {
+  // Handlers
+  // --------
+
+  _createVersion: function() {
     var that = this;
     Substance.session.createVersion(function(err) {
       that.trigger('publish_state:updated');
@@ -19,7 +22,7 @@ sc.views.PublishSettings = Substance.View.extend({
     return false;
   },
 
-  unpublish: function() {
+  _unpublish: function() {
     var that = this;
     Substance.session.unpublish(function(err) {
       that.trigger('publish_state:updated');
@@ -28,7 +31,7 @@ sc.views.PublishSettings = Substance.View.extend({
     return false;
   },
 
-  addPublication: function(e) {
+  _addPublication: function(e) {
     var network = $('#substance_networks').val();
     var that = this;
     Substance.session.createPublication(network, function(err) {
@@ -37,7 +40,7 @@ sc.views.PublishSettings = Substance.View.extend({
     return false;
   },
 
-  deletePublication: function(e) {
+  _deletePublication: function(e) {
     var id = $(e.currentTarget).attr('data-id');
     var that = this;
     
@@ -47,18 +50,12 @@ sc.views.PublishSettings = Substance.View.extend({
     return false;
   },
 
-  // Handlers
-  // --------
 
-  // Make sure view is populated with data before rendering it
   render: function() {
-    if (this.model.networks) {
-      this.$el.html(_.tpl('publish_settings', this.model));  
-    } else {
-      this.$el.html('loading...');
-    }
+    this.$el.html(_.tpl('publications', this.model));
     return this;
   },
+
   dispose: function() {
     console.log('disposing publish settings view');
     this.disposeBindings();

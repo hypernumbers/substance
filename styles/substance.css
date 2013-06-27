@@ -16,6 +16,14 @@ body {
   display: none;
 }
 
+a {
+  color: #426D8B;
+  text-decoration:none;
+}
+
+a:hover {
+  color: rgba(11, 157, 217, 1);
+}
 
 /*#header {
   display: none;
@@ -561,13 +569,78 @@ body {
 
 .document-settings .label {
   color: #888;
-  font-size: 10px;
+  font-size: 12px;
   text-transform: uppercase;
   margin-top: 20px;
+  padding-bottom: 10px;
 }
 
 
 
+
+/* Publish Settings
+-------------------------------------------------------------------------------*/
+
+.publish-settings {
+}
+
+.publications {
+
+}
+
+.publications .create-publication {
+  font-size: 16px;
+}
+
+.publications .publication {
+  border-bottom: 1px solid rgba(0,0,0,0.1);
+  margin-bottom: 20px;
+}
+
+
+.publications .publication .publication-header {
+  font-family: 'Avenir LT W01 85 Heavy', 'Montserrat', 'Source Sans Pro';
+  font-size: 16px;
+  overflow: auto;
+  line-height: 40px;
+}
+
+.publications .publication .publication-header i {
+  font-size: 22px;
+  line-height: 40px;
+}
+
+.publications .publication .publication-header .actions i {
+  font-size: 16px;
+  padding: 0px 5px;
+}
+
+.publications .publication .publication-header .actions {
+  float: right;
+}
+
+.publications .publication .property {
+  overflow: auto;
+}
+
+.publications .publication .property .label {
+  font-family: inherit;
+  text-transform: none;
+  font-size: inherit;
+  margin: 0;
+  line-height: 30px;
+  float: left;
+}
+
+.publications .publication .property .value {
+  float: right;
+  line-height: 30px;
+}
+
+.publish-settings .publish-actions {
+  position: absolute;
+  top: 50px;
+}
 
 /* Testsuite
 -------------------------------------------------------------------------------*/
