@@ -233,6 +233,8 @@ Session.__prototype__ = function() {
         // Supports text and heading nodes
         function insert(node) {
           var id = _.htmlId(node.id).replace('-', '_');
+
+          if (doc.nodes[id]) return; // skip existing nodes
           doc.exec(["create", {
             "id": id,
             "type": node.type,
