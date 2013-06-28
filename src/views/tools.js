@@ -30,19 +30,20 @@ sc.views.DocumentTool = Substance.View.extend({
 
   initialize: function(options) {
     this.session = this.model;
-
     this.documentView = options.documentView;
+
     // Views
     this.views = {};
     this.views.tool = new sc.views.Comments({ model: this.session });
   },
 
   render: function() {
-    this.$el.html(_.tpl('tools', this.session));
+    this.$el.html(_.tpl('tools', this.session.document));
     this.$('.tool').html(this.views.tool.render().el);
     return this;
   }
 });
+
 
 sc.views.Tools = Substance.View.extend({
 
@@ -105,7 +106,9 @@ sc.views.Tools = Substance.View.extend({
   },
 
   render: function() {
-    this.$el.html(_.tpl('tools', _.extend(this.session, {view: this.view})));
+    this.$el.html(_.tpl('tools', _.extend(this.session.document, {
+      view: this.view
+    })));
     this.$('.tool').html(this.views.tool.render().el);
     return this;
   },

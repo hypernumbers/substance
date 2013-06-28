@@ -229,7 +229,7 @@
 
         <div class="label">Creator</div>
         <div class="creator">
-          <div class="value"><%= get('creator').name %></div>
+          <div class="value"><%= document.entry.get('creator').name %></div>
         </div>
 
         <div class="label">Collaborators</div>
@@ -393,9 +393,9 @@
 
     <!-- Document Collaborators -->
     <script type="text/html" name="document_collaborators">
+      
       <div class="collaborators">
-        <% _.each(get('collaborators'), function(c) { %>
-          
+        <% _.each(entry.get('collaborators'), function(c) { %>
           <div class="collaborator">
             <%= c.name %>
             <a href="#" class="delete-collaborator" data-id="<%= c.id %>">Remove</a>

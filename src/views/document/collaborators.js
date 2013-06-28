@@ -17,21 +17,22 @@ sc.views.Collaborators = Substance.View.extend({
     console.log('creating a new collaborator ...', collaborator);
     var that = this;
 
-    Substance.session.createCollaborator(collaborator, function(err) {
+    this.model.createCollaborator(collaborator, function(err) {
+      console.log('created collaborator.');
       that.render(); // re-render
     });
     return false;
   },
 
   _deleteCollaborator: function(e) {
-    console('meeh');
-    // var id = $(e.currentTarget).attr('data-id');
-    // var that = this;
-    
-    // Substance.session.deleteCollaborator(id, function(err) {
-    //   that.render();
-    // });
-    // return false;
+    var id = $(e.currentTarget).attr('data-id');
+    var that = this;
+  
+    this.model.deleteCollaborator(id, function(err) {
+      console.log('deleted collaborator');
+      that.render();
+    });
+    return false;
   },
 
   initialize: function() {
@@ -47,5 +48,4 @@ sc.views.Collaborators = Substance.View.extend({
     console.log('disposing collaborators view');
     this.disposeBindings();
   }
-
 });

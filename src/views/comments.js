@@ -49,22 +49,10 @@ sc.views.Comments = Substance.View.extend({
 
     this.document.exec(cmd);
 
-    // this.document.apply(["insert", {
-    //   id: "comment:"+Substance.util.uuid(),
-    //   type: "comment",
-    //   data: {
-    //     content: content,
-    //     node: node,
-    //     annotation: annotation,
-    //     created_at: new Date().toJSON(),
-    //     creator: this.session.user()
-    //   }
-    // }]);
-
     console.log('the fresh comment', this.document.find('comments', target));
 
     // Not too smart™
-    this.comments.compute(this.scope);
+    this.document.comments.compute(this.scope);
 
     // this.render(); // compute triggers an event that causes re-render
 
@@ -129,7 +117,7 @@ sc.views.Comments = Substance.View.extend({
 
     this.session = this.model;
     this.document = this.session.document;
-    this.comments = this.session.comments;
+    this.comments = this.document.comments;
 
     // Initial comments computation
     this.comments.compute();
@@ -147,7 +135,7 @@ sc.views.Comments = Substance.View.extend({
     // Reset selected scope on every re-render
     this.scope = scope;
 
-    this.$el.html(_.tpl('comments', this.session));
+    this.$el.html(_.tpl('comments', this.document));
     this.activateScope(this.scope);
     return this;
   },

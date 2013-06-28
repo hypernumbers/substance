@@ -20,6 +20,77 @@ sc.views.Document = Substance.View.extend({
   },
 
 
+// Constructor
+  // --------
+
+  initialize: function() {
+    var that = this;
+
+    this.session = this.model;
+    this.document = this.session.document;
+
+    // Delegate update commands
+    this.document.on('command:executed', function(command) {
+      switch(command.op) {
+        // case "create": that.create(command.args); break;
+        case "position": that.position(command.args); break;
+        case "update": that.update(that.document.get(command.path[0]), command.args); break;
+        case "delete": that.delete(command.args); break;
+      }
+    });
+
+    // Handlers
+    function highlightAnnotation(scope, node, annotation) {
+      var a = this.document.nodes[annotation];
+
+      if (a) {
+        $('#'+_.htmlId(node)+' .handle-2').removeClass().addClass('handle-2').addClass(a.type);
+      } else {
+        $('#'+_.htmlId(node)+' .handle-2').removeClass().addClass('handle-2');
+      }
+
+      node = this.nodes[node];
+      if (node && node.surface) {
+        node.surface.highlight(annotation);
+      }
+    }
+
+    // Delete Annotation
+    function deleteAnnotation(node, annotation) {
+      node = this.nodes[node];
+      if (node && node.surface) node.surface.deleteAnnotation(annotation);
+    }
+
+    // Update Node
+    function updateNode(nodeId) {
+      // Update node since its dirty
+      var node = this.nodes[nodeId];
+
+      // TypeError: 'undefined' is not an object (evaluating 'node.render')
+      if (!node) console.log('ERROR Spottid', nodeId, ' not found');
+      if (node) node.render();
+      this.updateSelections();
+    }
+
+    // Bind handlers (but only once)
+    Substance.router.off('comment-scope:selected', highlightAnnotation);
+    Substance.router.on('comment-scope:selected', highlightAnnotation, this);
+
+    Substance.router.off('annotation:deleted', deleteAnnotation);
+    Substance.router.on('annotation:deleted', deleteAnnotation, this);
+
+    Substance.router.off('node:dirty', updateNode);
+    Substance.router.on('node:dirty', updateNode, this);
+
+    this.session.off('node:selected', this.updateSelections);
+    this.session.on('node:selected', this.updateSelections, this);
+    this.build();
+
+    $(document.body).keydown(this.onKeydown);
+  },
+
+
+
   // Handle local user interactions
   // ========
   // 
@@ -65,18 +136,18 @@ sc.views.Document = Substance.View.extend({
   // 
 
   updateMode: function() {
-    var selection = this.session.selection();
+    var selection = this.session.document.selection();
     $('#document').removeClass();
 
     if (selection.length > 0) {
-      $('#document').addClass(this.session.edit ? 'edit-mode' : 'structure-mode');
+      $('#document').addClass(this.session.document.edit ? 'edit-mode' : 'structure-mode');
     } else {
       $('#document').addClass('document-mode');
     }
 
     // Render context bar
     this.$('#context_bar').html(_.tpl('context_bar', {
-      level: this.session.level(),
+      level: this.session.document.level(),
       // TODO: Use Plugin System!
       node_types: [
         { name: "Heading", type: "heading" },
@@ -283,74 +354,6 @@ sc.views.Document = Substance.View.extend({
   },
 
 
-  // Constructor
-  // --------
-
-  initialize: function() {
-    var that = this;
-
-    this.session = this.model;
-    this.document = this.session.document;
-
-    // Delegate update commands
-    this.document.on('command:executed', function(command) {
-      switch(command.op) {
-        // case "create": that.create(command.args); break;
-        case "position": that.position(command.args); break;
-        case "update": that.update(that.document.get(command.path[0]), command.args); break;
-        case "delete": that.delete(command.args); break;
-      }
-    });
-
-    // Handlers
-    function highlightAnnotation(scope, node, annotation) {
-      var a = this.document.nodes[annotation];
-
-      if (a) {
-        $('#'+_.htmlId(node)+' .handle-2').removeClass().addClass('handle-2').addClass(a.type);
-      } else {
-        $('#'+_.htmlId(node)+' .handle-2').removeClass().addClass('handle-2');
-      }
-
-      node = this.nodes[node];
-      if (node && node.surface) {
-        node.surface.highlight(annotation);
-      }
-    }
-
-    // Delete Annotation
-    function deleteAnnotation(node, annotation) {
-      node = this.nodes[node];
-      if (node && node.surface) node.surface.deleteAnnotation(annotation);
-    }
-
-    // Update Node
-    function updateNode(nodeId) {
-      // Update node since its dirty
-      var node = this.nodes[nodeId];
-
-      // TypeError: 'undefined' is not an object (evaluating 'node.render')
-      if (!node) console.log('ERROR Spottid', nodeId, ' not found');
-      if (node) node.render();
-      this.updateSelections();
-    }
-
-    // Bind handlers (but only once)
-    Substance.router.off('comment-scope:selected', highlightAnnotation);
-    Substance.router.on('comment-scope:selected', highlightAnnotation, this);
-
-    Substance.router.off('annotation:deleted', deleteAnnotation);
-    Substance.router.on('annotation:deleted', deleteAnnotation, this);
-
-    Substance.router.off('node:dirty', updateNode);
-    Substance.router.on('node:dirty', updateNode, this);
-
-    this.session.off('node:selected', this.updateSelections);
-    this.session.on('node:selected', this.updateSelections, this);
-    this.build();
-
-    $(document.body).keydown(this.onKeydown);
-  },
 
 
   // Utilities

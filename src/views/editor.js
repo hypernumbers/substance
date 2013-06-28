@@ -38,12 +38,12 @@ sc.views.Editor = Substance.View.extend({
     this.session = this.model;
 
     // Setup shelf views
-    this.settings      = new sc.views.Settings({ model: this.session });
-    this.collaborators = new sc.views.Collaborators({ model: this.session, docView: this });
-    this["export"]     = new sc.views.Export({ model: this.session });
+    // this.settings      = new sc.views.Settings({ model: this.session });
+    this.collaborators = new sc.views.Collaborators({ model: this.session.document, docView: this });
+    // this["export"]     = new sc.views.Export({ model: this.session });
 
     // Publications View
-    this.publications = new sc.views.Publications({ model: this.session });
+    this.publications = new sc.views.Publications({ model: this.session.document });
 
     // Refresh publications state on demand
     this.publications.on('publish_state:updated', function() {
