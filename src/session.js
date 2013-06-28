@@ -6,6 +6,8 @@ var _ = root._;
 var ot = Substance.Chronicle.ot;
 var Data = root.Substance.Data;
 var Library = root.Substance.Library;
+var MemoryStore = root.Substance.MemoryStore;
+var PersistentGraph = root.Substance.Data.PersistentGraph;
 
 
 // Substance.Session
@@ -21,7 +23,13 @@ var Session = function(options) {
   this.env = options.env;
   this.chronicle = Substance.Chronicle.create(Substance.Chronicle.Index.create());
   this.initStores();
-  this.library = new Library();
+  // this.library = new Library();
+
+  this.store = new MemoryStore();
+
+  this.library = new Library(this.store);
+  
+
   this.seedLibrary();
 };
 
