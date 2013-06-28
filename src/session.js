@@ -21,12 +21,8 @@ var Session = function(options) {
   this.env = options.env;
   this.chronicle = Substance.Chronicle.create(Substance.Chronicle.Index.create());
   this.initStores();
-  // this.library = new Library();
-
   this.store = new MemoryStore();
-
-  this.library = new Library(this.store);
-  
+  this.library = new Library({store: this.store});
 
   this.seedLibrary();
 };
@@ -230,7 +226,7 @@ Session.__prototype__ = function() {
 
   // Get Dashboard Data
   // --------
-  // 
+  //
 
   this.getDashboard = function(collection) {
     return {
@@ -334,7 +330,7 @@ Session.__prototype__ = function() {
 
   // Set a property in user scope
   // --------
-  // 
+  //
 
   this.setProperty = function(key, val) {
     Substance.settings.setItem(this.env+":"+key, val);
@@ -342,7 +338,7 @@ Session.__prototype__ = function() {
 
   // Read a property in user scope
   // --------
-  // 
+  //
 
   this.getProperty = function(key) {
     return Substance.settings.getItem(this.env+":"+key);
@@ -350,7 +346,7 @@ Session.__prototype__ = function() {
 
   // Display logged in user
   // --------
-  // 
+  //
 
   this.user = function() {
     return this.getProperty('user') || "";
@@ -358,7 +354,7 @@ Session.__prototype__ = function() {
 
   // Get current login toekn
   // --------
-  // 
+  //
 
   this.token = function() {
     return this.getProperty('api-token') || "";
@@ -366,7 +362,7 @@ Session.__prototype__ = function() {
 
   // Authenticate session
   // --------
-  // 
+  //
 
   this.authenticate = function(username, password, cb) {
     var that = this;
@@ -398,7 +394,7 @@ Session.__prototype__ = function() {
 
   // Forget login token
   // --------
-  // 
+  //
 
   this.logout = function() {
     this.localStore = null;
@@ -410,7 +406,7 @@ Session.__prototype__ = function() {
 
   // Authenticated or net
   // --------
-  // 
+  //
 
   this.authenticated = function() {
     return !!this.getProperty("user");
@@ -418,7 +414,7 @@ Session.__prototype__ = function() {
 
   // Create a new user on the server
   // --------
-  // 
+  //
 
   this.createUser = function(user, cb) {
     this.client.createUser(user, cb);
@@ -465,7 +461,7 @@ Session.Document = function(session, document, schema) {
 
   // TODO: Use versioned doc
   Substance.Document.call(this, document, schema);
-  
+
   this.entry = {
     get: function(property) {
       return session.library.query([self.id, property]);
@@ -672,7 +668,7 @@ Session.Document.__prototype__ = function() {
 
   // Create new collaborator on the server
   // --------
-  // 
+  //
   // Collaborator also gets registered in the library (document entry)
 
   this.createCollaborator = function(collaborator, cb) {
@@ -684,7 +680,7 @@ Session.Document.__prototype__ = function() {
       // Update document entry
       var collabs = that.session.library.resolve([that.id, "collaborators"]).get();
       collabs.push(collaborator);
-      
+
       that.session.library.set([that.id, "collaborators"], collabs);
 
       cb(null);
@@ -693,7 +689,7 @@ Session.Document.__prototype__ = function() {
 
   // Delete collaborator on the server
   // --------
-  // 
+  //
   // Collaborator also gets removed from the document entry in the library
 
   this.deleteCollaborator = function(collaborator, cb) {
