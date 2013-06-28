@@ -35,7 +35,7 @@ sc.views.Comments = Substance.View.extend({
     console.log('annotation', annotation);
 
     // Stick comment on annotation or node
-    var target = annotation || node;
+    var target = annotation || node;
 
     var cmd = ["comment", target, {
         "id": "comment_"+Substance.util.uuid(),

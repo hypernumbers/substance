@@ -147,15 +147,15 @@ Session.__prototype__ = function() {
   this.getUserStore = function(username) {
     var scope = username ? this.env+":"+username : this.env;
 
-    if (Substance.client_type === "native") {
-      var settings = {
-        scope: scope
-      };
-      return new Substance.RedisStore(settings);
-    }
-    if (Substance.LocalStore) {
-      return new Substance.LocalStore(scope);
-    }
+    // if (Substance.client_type === "native") {
+    //   var settings = {
+    //     scope: scope
+    //   };
+    //   return new Substance.RedisStore(settings);
+    // }
+    // if (Substance.LocalStore) {
+    //   return new Substance.LocalStore(scope);
+    // }
     return new Substance.MemoryStore();
   };
 
