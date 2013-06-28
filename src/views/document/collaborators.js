@@ -1,5 +1,8 @@
 sc.views.Collaborators = Substance.View.extend({
 
+  // `this.model` holds a Substance.Session object
+  // 
+
   // Events
   // ------
 
@@ -12,13 +15,10 @@ sc.views.Collaborators = Substance.View.extend({
   // --------
 
   _createCollaborator: function(e) {
-
     var collaborator = this.$('#new_collaborator').val();
-    console.log('creating a new collaborator ...', collaborator);
     var that = this;
 
     this.model.createCollaborator(collaborator, function(err) {
-      console.log('created collaborator.');
       that.render(); // re-render
     });
     return false;

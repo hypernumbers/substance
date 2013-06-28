@@ -155,7 +155,6 @@
         // Shortcuts
         // window.doc = session.document;
         that.listenForDocumentChanges();
-      
       });
       
       // this.render();

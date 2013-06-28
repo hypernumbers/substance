@@ -311,39 +311,26 @@
 
     <!-- Publications -->
     <script type="text/html" name="publications">
-      <div class="publication">
-        <div class="publication-header">
-          <i class="icon-smile"></i> Public
-          <div class="actions">
-            <a href="#" class="create-version"><i class="icon-share"></i></a>
-            <a href="#" class="delete-publication"><i class="icon-trash"></i></a>
+      <% _.each(document.entry.get('publications'), function(pub) { %>
+        <div class="publication">
+          <div class="publication-header">
+            <i class="icon-smile"></i> <%= get(pub.network).name %>
+            <div class="actions">
+              <a href="#" class="create-version"><i class="icon-share"></i></a>
+              <a href="#" class="delete-publication" data-id="<%= pub.id %>"><i class="icon-trash"></i></a>
+            </div>
+          </div>
+          <div class="property">
+            <div class="label">Creator</div>
+            <div class="value"><%= get(pub.creator).name %></div>
+          </div>
+          <div class="property">
+            <div class="label">Status</div>
+            <div class="value">Confirmed</div>
           </div>
         </div>
-        <div class="property">
-          <div class="label">Date</div>
-          <div class="value">12.5.2013</div>
-        </div>
-        <div class="property">
-          <div class="label">Status</div>
-          <div class="value">In review</div>
-        </div>
-      </div>
-      <div class="publication">
-        <div class="publication-header">
-          <i class="icon-meh"></i> Science
-          <div class="actions">
-            <a href="#" class="create-version"><i class="icon-share"></i></a>
-            <a href="#" class="delete-publication"><i class="icon-trash"></i></a>
-          </div>
-        </div>
-        <div class="property">
-          <div class="label">Date</div>
-          <div class="value">12.5.2013</div>
-        </div>
-      </div>
-
+      <% }); %>
       <a href="#" class="create-publication">Add Publication</a>
-      
     </script>
 
     <!-- Publish Settings -->
@@ -360,7 +347,6 @@
           <a href="#" class="add-publication">Add</a>
         </div>
         <div class="publications">
-
           <% if (publications.length === 0) { %>
             <div class="no-publications">No publications so far</div>
           <% } %>
@@ -390,12 +376,11 @@
       <% } %>
     </script>
 
-
     <!-- Document Collaborators -->
     <script type="text/html" name="document_collaborators">
       
       <div class="collaborators">
-        <% _.each(entry.get('collaborators'), function(c) { %>
+        <% _.each(document.entry.get('collaborators'), function(c) { %>
           <div class="collaborator">
             <%= c.name %>
             <a href="#" class="delete-collaborator" data-id="<%= c.id %>">Remove</a>
@@ -559,7 +544,6 @@
       </div>
     </script>
 
-
     <!-- Ken.Browser  -->
     <script type="text/x-ejs-template" name="browser">
       <div id="facets"></div>
@@ -658,7 +642,7 @@
     <script src="lib/store/src/replicator.js"></script>
     <script src="lib/store/src/persistent_index.js"></script>
     <script src="lib/store/src/persistent_graph.js"></script>
-    
+
     <script src="lib/library/library.js"></script>
 
     <script src="src/substance-view.js"></script>

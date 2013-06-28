@@ -52,9 +52,8 @@ sc.views.Comments = Substance.View.extend({
     console.log('the fresh comment', this.document.find('comments', target));
 
     // Not too smart™
+    // compute triggers an event that causes re-render
     this.document.comments.compute(this.scope);
-
-    // this.render(); // compute triggers an event that causes re-render
 
     // Notify Composer -> triggers a re-render
     if (node) Substance.router.trigger('node:dirty', node);

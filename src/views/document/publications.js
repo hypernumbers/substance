@@ -1,5 +1,8 @@
 sc.views.Publications = Substance.View.extend({
 
+  // `this.model` holds a Substance.Session object
+  // 
+
   // Events
   // ------
 
@@ -44,12 +47,14 @@ sc.views.Publications = Substance.View.extend({
     var id = $(e.currentTarget).attr('data-id');
     var that = this;
     
-    Substance.session.deletePublication(id, function(err) {
+    // console.log('deleting publication', id);
+    this.model.document.deletePublication(id, function(err) {
+      if (err) console.log(err);
+      console.log('done deleting..');
       that.render();
     });
     return false;
   },
-
 
   render: function() {
     this.$el.html(_.tpl('publications', this.model));

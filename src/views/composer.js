@@ -264,7 +264,7 @@
     clear: function() {
       // HACK: ensures there are no remaining floating annotation controls
       $('.annotation-tools').hide();
-      this.session.select([]);
+      this.session.document.select([]);
       this.updateMode();
     },
 

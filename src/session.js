@@ -3,12 +3,10 @@
 var Substance = root.Substance;
 var util = Substance.util;
 var _ = root._;
-var ot = Substance.Chronicle.ot;
 var Data = root.Substance.Data;
 var Library = root.Substance.Library;
 var MemoryStore = root.Substance.MemoryStore;
-var PersistentGraph = root.Substance.Data.PersistentGraph;
-
+var Ken = root.Ken;
 
 // Substance.Session
 // -----------------
@@ -66,6 +64,27 @@ Session.__prototype__ = function() {
       this.library.exec(Data.Graph.Create(n));
     }, this);
 
+    // Create some sample networks
+    var publications = [
+      {
+        id: "pub1",
+        type: "publication",
+        network: "public",
+        entry: "00301",
+        creator: "michael"
+      },
+      {
+        id: "pub2",
+        type: "publication",
+        network: "science",
+        entry: "00301",
+        creator: "michael"
+      }
+    ];
+
+    _.each(publications, function(n) {
+      this.library.exec(Data.Graph.Create(n));
+    }, this);
 
     // Create some sample users
     var users = [
@@ -90,7 +109,7 @@ Session.__prototype__ = function() {
       this.library.exec(Data.Graph.Create(u));
     }, this);
 
-    _.each(LIBRARY_SEED.objects, function(o) {
+    _.each(window.LIBRARY_SEED.objects, function(o) {
       var op = Data.Graph.Create({
         id: o._id,
         type: "article",
@@ -98,7 +117,7 @@ Session.__prototype__ = function() {
         keywords: o.keywords,
         creator: "michael", // derive dynamically
         collaborators: [], // empty for now
-        publications: ["javascript", "public", "science"], // derive dynamically
+        publications: ["pub1", "pub2"], // derive dynamically
         published_at: o.published_at, // derive dynamically
         created_at: o.published_at,
         updated_at: o.published_at
@@ -409,7 +428,12 @@ Session.__prototype__ = function() {
     return new Substance.Replicator2({local: this.localStore, remote: this.remoteStore, remoteID: "substance.io"});
   };
 
+
+  // Seed local store
+  // --------
+  // 
   // only available for testing
+
   this.seed = function(seedData) {
     console.log("Seeding local store", seedData);
     if (this.env !== "test") return;
@@ -420,9 +444,15 @@ Session.__prototype__ = function() {
       userStore.seed(seed);
     }, this);
   };
+
+  // Get Data.Object from library
+  // --------
+  // 
+
+  this.get = function(id) {
+    return this.library.get(id);
+  };
 };
-
-
 
 
 Session.prototype = new Session.__prototype__();
@@ -438,25 +468,7 @@ Session.Document = function(session, document, schema) {
   
   this.entry = {
     get: function(property) {
-      // var doc = this.document;
-
-      // session.library.query([self.id, property);
-
-      var entry = session.library.get(self.id);
-      var propertyType = session.library.schema.propertyType('entry', property);
-      var val = entry[property];
-
-      if (Data.isValueType(propertyType)) {
-        return entry[property];
-      } else {
-        if (_.isArray(val)) {
-          return _.map(val, function(id) {
-            return session.library.get(id);
-          });
-        } else {
-          return session.library.get(val);
-        }
-      }
+      return session.library.query([self.id, property]);
     }
   };
 
@@ -466,7 +478,6 @@ Session.Document = function(session, document, schema) {
 Session.Document.__prototype__ = function() {
 
   var __super__ = util.prototype(this);
-
 
   // When a doc changes, bind event handlers etc.
   this.initDoc = function() {
@@ -522,10 +533,47 @@ Session.Document.__prototype__ = function() {
     });
   };
 
-  this.deletePublication = function(id, cb) {
-    this.session.client.deletePublication(id, function(err) {
+  this.deletePublication = function(pubId, cb) {
+    var that = this;
+    this.session.client.deletePublication(pubId, function(err) {
       if (err) return cb(err);
       // ...
+
+      // this.library.update([self.id, "publications", ArrayOperation.Without() ])
+      // this.library.update([self.id, "publications", "without", "36" ])
+
+      that.library.delete([that.id, "publications"], pubId);
+
+      // fehlt was
+      // var cmd = Data.Array.Delete([self.id, "publications"]);
+
+      // // mit instanz
+      // var cmd = Data.Array.Delete(graph, [self.id, "publications"]);
+
+      // var arr = graph.get([self.id, "publications"]);
+
+
+      // // var Data.Array.Delete(arr, id);
+      // var cmd = Data.Graph.Update(path, Data.Array.Delete(arr, id));
+
+      // var myvar = _.without(["-1"], "-1");
+
+
+      // var arr = new Data.Array();
+
+      // Data.Array.Delete(id).apply(arr);
+
+      // _.without(arr, 24);
+
+      // _.without(graph, ["a", "b"], )
+
+      // this.exec(cmd);
+
+      // // 
+      // this.library.exec(["delete", self.id, publications, id]);
+
+
+
       cb(null);
     });
   };
@@ -654,7 +702,7 @@ Session.Document.__prototype__ = function() {
       if (err) return cb(err);
 
       // Remove collaborator from document entry
-      var collabs = _.without(that.session.library.resolve([that.id, "collaborators"]).get(), collaborator);
+      var collabs = _.without(that.session.library.get([that.id, "collaborators"]), collaborator);
       that.session.library.set([that.id, "collaborators"], collabs);
       cb(null);
     });

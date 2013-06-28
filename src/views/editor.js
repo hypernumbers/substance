@@ -39,11 +39,11 @@ sc.views.Editor = Substance.View.extend({
 
     // Setup shelf views
     // this.settings      = new sc.views.Settings({ model: this.session });
-    this.collaborators = new sc.views.Collaborators({ model: this.session.document, docView: this });
+    this.collaborators = new sc.views.Collaborators({ model: this.session, docView: this });
     // this["export"]     = new sc.views.Export({ model: this.session });
 
     // Publications View
-    this.publications = new sc.views.Publications({ model: this.session.document });
+    this.publications = new sc.views.Publications({ model: this.session });
 
     // Refresh publications state on demand
     this.publications.on('publish_state:updated', function() {
