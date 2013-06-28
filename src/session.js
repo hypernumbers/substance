@@ -426,48 +426,7 @@ Session.Document = function(session, document, schema) {
   this.session = session;
 
   // TODO: Use versioned doc
-  // Substance.VersionedDocument.call(this, session.chronicle, document, schema);
   Substance.Document.call(this, document, schema);
-  // this.doc = new Document({"id": "substance-doc"});
-      
-  // 1. create heading
-  // this.exec(["create", {
-  //   "id": "h1",
-  //   "type": "heading",
-  //   "content": "Hello World",
-  //   "level": 1
-  // }]);
-
-  // // 2. create text
-  // this.exec(["create", {
-  //   "id": "t1",
-  //   "type": "text",
-  //   "content": "Woot"
-  // }]);
-
-  // // 3. create more text
-  // this.exec(["create", {
-  //   "id": "t2",
-  //   "type": "text",
-  //   "content": "Even more text."
-  // }]);
-
-  // // 4. position elements
-  // this.exec(["position", "content", {"nodes": ["h1", "t1", "t2"], "target": -1 }]);
-
-  // // 5. Add annotation to t1
-  // this.exec(["annotate", "t2", "content", {
-  //   "id": "a1",
-  //   "type": "idea",
-  //   "range": {start: 1, length: 3}
-  // }]);
-
-  // // 6. Add annotation to t1
-  // this.exec(["annotate", "t2", "content", {
-  //   "id": "a2",
-  //   "type": "strong",
-  //   "range": {start: 5, length: 3}
-  // }]);
   
   this.entry = {
     get: function(property) {
@@ -493,11 +452,7 @@ Session.Document = function(session, document, schema) {
     }
   };
 
-  // _.bindAll(this.entry.get);
-
   this.entry.get = _.bind(this.entry.get, this);
-  // this.entry.get = this.entry.get.bind
-
 };
 
 Session.Document.__prototype__ = function() {
@@ -547,27 +502,23 @@ Session.Document.__prototype__ = function() {
     }, this);
 
     // New selection leads to new comment context
-    this.document.comments.compute();
+    this.comments.compute();
     this.trigger('node:selected');
   };
 
   this.createPublication = function(network, cb) {
-    var that = this;
-    var doc = this.document;
-    
-    this.client.createPublication(doc.id, network, function(err) {
+    this.session.client.createPublication(this.id, network, function(err) {
       if (err) return cb(err);
+      // ...
       cb(null);
-      // that.loadPublications(cb);
     });
   };
 
   this.deletePublication = function(id, cb) {
-    var that = this;
-    this.client.deletePublication(id, function(err) {
+    this.session.client.deletePublication(id, function(err) {
       if (err) return cb(err);
+      // ...
       cb(null);
-      // that.loadPublications(cb);
     });
   };
 
@@ -724,9 +675,9 @@ _.extend(Substance.Comments.prototype, _.Events, {
 
     var content, annotations;
     if (node) {
-      var nodeData = this.nodes[node];
+      var nodeData = this.document.nodes[node];
       content = nodeData.content;
-      annotations = this.find('annotations', node);
+      annotations = this.document.find('annotations', node);
     }
     this.commentsForNode(this.document, node, content, annotations, scope);
   },

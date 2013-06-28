@@ -18,7 +18,7 @@ var Textish = {
 
     this.surface = new Substance.Surface({
       el: this.$('.content')[0],
-      model: new Substance.Document.AnnotatedText(Substance.session.document, [this.model.id, "content"]),
+      model: new Substance.Document.AnnotatedText(this.document, [this.model.id, "content"]),
       types: this.types
     });
 
@@ -37,7 +37,7 @@ var Textish = {
     // });
 
     this.surface.on('surface:active', function() {
-      that.session.select([that.model.id], { edit: true });
+      that.document.select([that.model.id], { edit: true });
     });
 
     function selectionChanged(sel) {
@@ -63,7 +63,7 @@ var Textish = {
 
     this.surface.on('annotations:changed', function() {
       console.log('annotations changed, yeah!');
-      that.session.comments.updateAnnotations(that.surface.content, that.surface.annotations);
+      that.document.comments.updateAnnotations(that.surface.content, that.surface.annotations);
     });
 
     // Changes are confirmed.

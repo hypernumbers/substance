@@ -365,7 +365,6 @@ sc.views.Document = Substance.View.extend({
 
   createNodeView: function(node) {
     return sc.views.Node.create({
-      session: this.session,
       document: this.session.document,
       model: node
     });
