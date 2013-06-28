@@ -210,7 +210,24 @@ Session.__prototype__ = function() {
     // });
 
     this.document = new Session.Document(this, document, schema);
-    this.initDoc();
+
+    var op = Data.Graph.Create({
+      id: this.document.id,
+      type: "article",
+      title: "Untitled", // derive dynamically
+      keywords: [],
+      creator: "michael", // derive dynamically
+      collaborators: [], // empty for now
+      publications: [], // derive dynamically
+      published_at: null, // derive dynamically
+      created_at: new Date(),
+      updated_at: new Date()
+    });
+
+    this.library.exec(op);
+    
+    console.log('TEST', this.document);
+    this.document.initDoc();
   };
 
   this.synched = function(docId) {
@@ -533,43 +550,7 @@ Session.Document.__prototype__ = function() {
     var that = this;
     this.session.client.deletePublication(pubId, function(err) {
       if (err) return cb(err);
-      // ...
-
-      // this.library.update([self.id, "publications", ArrayOperation.Without() ])
-      // this.library.update([self.id, "publications", "without", "36" ])
-
-      that.library.delete([that.id, "publications"], pubId);
-
-      // fehlt was
-      // var cmd = Data.Array.Delete([self.id, "publications"]);
-
-      // // mit instanz
-      // var cmd = Data.Array.Delete(graph, [self.id, "publications"]);
-
-      // var arr = graph.get([self.id, "publications"]);
-
-
-      // // var Data.Array.Delete(arr, id);
-      // var cmd = Data.Graph.Update(path, Data.Array.Delete(arr, id));
-
-      // var myvar = _.without(["-1"], "-1");
-
-
-      // var arr = new Data.Array();
-
-      // Data.Array.Delete(id).apply(arr);
-
-      // _.without(arr, 24);
-
-      // _.without(graph, ["a", "b"], )
-
-      // this.exec(cmd);
-
-      // // 
-      // this.library.exec(["delete", self.id, publications, id]);
-
-
-
+      that.session.library.delete([that.id, "publications"], pubId);
       cb(null);
     });
   };
@@ -678,10 +659,13 @@ Session.Document.__prototype__ = function() {
       if (err) return cb(err);
 
       // Update document entry
-      var collabs = that.session.library.resolve([that.id, "collaborators"]).get();
-      collabs.push(collaborator);
+      // var collabs = that.session.library.resolve([that.id, "collaborators"]).get();
+      // collabs.push(collaborator);
+      // that.session.library.exec([that.id, "collaborators"], collaborator);
 
-      that.session.library.set([that.id, "collaborators"], collabs);
+      that.session.library.exec(["push", that.id, "collaborators", collaborator]);
+
+      // that.session.library.set([that.id, "collaborators"], collabs);
 
       cb(null);
     });
@@ -696,10 +680,8 @@ Session.Document.__prototype__ = function() {
     var that = this;
     this.session.client.deleteCollaborator(collaborator, function(err) {
       if (err) return cb(err);
+      that.session.library.delete([that.id, "collaborators"], collaborator);
 
-      // Remove collaborator from document entry
-      var collabs = _.without(that.session.library.get([that.id, "collaborators"]), collaborator);
-      that.session.library.set([that.id, "collaborators"], collabs);
       cb(null);
     });
   };

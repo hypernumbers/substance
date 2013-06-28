@@ -1,8 +1,9 @@
-(function(exports) {
+(function(root) {
 
   // The Substance Namespace
-  if (!exports.Substance) exports.Substance = {};
-  var Substance = exports.Substance;
+
+  var Substance = root.Substance;
+  var _ = root._;
 
   var Composer = Substance.View.extend({
 
@@ -49,7 +50,7 @@
     // Select next node
     _selectNext: function(e) {
       // If in selection/structure mode
-      if (this.session.level() <= 2) {
+      if (this.model.document.level() <= 2) {
         this.views.document.selectNext();
         // stop propageting the key events
         e.preventDefault();
@@ -59,7 +60,7 @@
     // Select previous node
     _selectPrevious: function(e) {
       // If in selection/structure mode
-      if (this.session.level() <= 2) {
+      if (this.model.document.level() <= 2) {
         this.views.document.selectPrev();
         // stop propageting the key events
         e.preventDefault();
@@ -68,7 +69,7 @@
 
     // Move current selection down by one
     _moveDown: function(e) {
-      if (this.session.level() === 2) {
+      if (this.model.document.level() === 2) {
         this.views.document.moveDown();
         e.preventDefault();
       }
@@ -76,7 +77,7 @@
 
     // Move current selection up by one
     _moveUp: function(e) {
-      if (this.session.level() === 2) {
+      if (this.model.document.level() === 2) {
         this.views.document.moveUp();
         e.preventDefault();
       }
@@ -84,10 +85,10 @@
 
     // Go up one level
     _goBack: function(e) {
-      var lvl = this.session.level();
+      var lvl = this.model.document.level();
       if (lvl === 2) return this.clear();
 
-      this.session.edit = false;
+      this.model.document.edit = false;
       // TODO: Only deactivate currently active surface -> performance
       $(".content-node .content").blur();
       this.updateMode();
@@ -97,7 +98,7 @@
     // Current select + next element
     _expandSelection: function(e) {
       // Structure mode
-      if (this.session.level() === 2) {
+      if (this.model.document.level() === 2) {
         this.views.document.expandSelection();
         e.preventDefault();
       }
@@ -105,7 +106,7 @@
 
     // Current select - last element
     _narrowSelection: function(e) {
-      if (this.session.level() === 2) {
+      if (this.model.document.level() === 2) {
         this.views.document.narrowSelection();
         e.preventDefault();
       }
@@ -115,8 +116,8 @@
     _breakText: function(e) {
       var that = this;
 
-      if (this.session.level() === 3) {
-        var selectedNode = _.first(this.model.selection());
+      if (this.model.document.level() === 3) {
+        var selectedNode = _.first(this.model.document.selection());
         var node = this.views.document.nodes[selectedNode];
 
         if (!node) {
@@ -150,7 +151,7 @@
 
     // Delete currently selected nodes
     _deleteNode: function(e) {
-      if (this.session.level() === 2) {
+      if (this.model.document.level() === 2) {
         this.views.document.deleteNodes();
         e.preventDefault();
       }
@@ -164,15 +165,15 @@
 
     // Toggle annotation for given selection
     _toggleAnnotation: function(e, type) {
-      if (this.session.level() === 3) {
-        var node = this.views.document.nodes[this.model.selection()[0]];
+      if (this.model.document.level() === 3) {
+        var node = this.views.document.nodes[this.model.document.selection()[0]];
         node.annotate(type);
         e.preventDefault();
       }
     },
 
     _undo: function() {
-      this.session.select([]); // Deselect
+      this.model.document.select([]); // Deselect
       this.chronicle.rewind();
       this.init();
       this.render();
@@ -180,7 +181,7 @@
     },
 
     _redo: function() {
-      this.session.select([]); // Deselect
+      this.model.document.select([]); // Deselect
       this.chronicle.forward(this.chronicle.find("last"));
       this.init();
       this.render();
@@ -188,8 +189,8 @@
     },
 
     _indent: function(e, reverse) {
-      if (this.session.level() === 3) {
-        var node = this.views.document.nodes[_.first(this.session.selection())];
+      if (this.model.document.level() === 3) {
+        var node = this.views.document.nodes[_.first(this.model.document.selection())];
 
         if (node.model.type === "heading") {
           var level = node.model.level;
@@ -201,7 +202,7 @@
             level = Math.min(level+1, 3);
           }
 
-          this.session.document.apply(["update", {id: node.model.id, "data": {
+          this.model.document.apply(["update", {id: node.model.id, "data": {
             "level": level
           }}]);
 
@@ -244,8 +245,8 @@
 
     initialize: function() {
       this.mode = "edit";
-      this.session = this.model;
-      this.chronicle = this.session.chronicle;
+      // this.model = this.model;
+      this.chronicle = this.model.chronicle;
       this.init();
     },
 
@@ -264,7 +265,7 @@
     clear: function() {
       // HACK: ensures there are no remaining floating annotation controls
       $('.annotation-tools').hide();
-      this.session.document.select([]);
+      this.model.document.select([]);
       this.updateMode();
     },
 
@@ -329,8 +330,8 @@
 
   // Exports
   Substance.Composer = Composer;
-  exports.Substance = Substance;
-  exports.s = Substance;
-  exports.sc = Substance.Composer;
+  
+  root.s = Substance;
+  root.sc = Substance.Composer;
 
 })(window);

@@ -18,7 +18,7 @@ sc.views.Collaborators = Substance.View.extend({
     var collaborator = this.$('#new_collaborator').val();
     var that = this;
 
-    this.model.createCollaborator(collaborator, function(err) {
+    this.model.document.createCollaborator(collaborator, function(err) {
       that.render(); // re-render
     });
     return false;
@@ -28,8 +28,7 @@ sc.views.Collaborators = Substance.View.extend({
     var id = $(e.currentTarget).attr('data-id');
     var that = this;
   
-    this.model.deleteCollaborator(id, function(err) {
-      console.log('deleted collaborator');
+    this.model.document.deleteCollaborator(id, function(err) {
       that.render();
     });
     return false;
