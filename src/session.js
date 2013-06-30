@@ -189,45 +189,41 @@ Session.__prototype__ = function() {
     }
   };
 
-
-
   // Create a new document locally
   // Schema is optional (currently only used by testsuite)
-  this.createDocument = function(schema) {
-    var document = new Substance.Document({
-      id: Substance.util.uuid(),
-      meta: {
-        "creator": this.user(),
-        "created_at": new Date()
-      }
-    }, schema);
+  this.createDocument = function(options) {
+    options = options || {};
 
+    // create a new store area for the persistent document graph.
+    var seed = {
+      id: util.uuid(),
+      "creator": this.user(),
+      "created_at": new Date()
+    };
+    options.seed = seed;
+    options.store = this.localStore.subStore(["documents", seed.id]);
+    options.chronicle = this.localStore.subStore(["documents", seed.id, "index"]);
 
-    // this.localStore.create(document.id, {
-    //   meta: document.meta,
-    //   commits: document.commits,
-    //   refs: document.refs
-    // });
+    this.document = new Session.Document(this, options);
+    this.document.exec(Data.Graph.Set(["document", "title"], "Untitled"));
+    this.document.exec(Data.Graph.Set(["document", "abstract"], "Enter Abstract"));
+    this.document.initDoc();
 
-    this.document = new Session.Document(this, document, schema);
-
+    // Register the new document in the Library
     var op = Data.Graph.Create({
       id: this.document.id,
       type: "article",
-      title: "Untitled", // derive dynamically
+      title: this.document.title, // derive dynamically
       keywords: [],
-      creator: "michael", // derive dynamically
+      creator: this.document.creator, // derive dynamically
       collaborators: [], // empty for now
       publications: [], // derive dynamically
       published_at: null, // derive dynamically
-      created_at: new Date(),
-      updated_at: new Date()
+      created_at: this.document.created_at,
+      updated_at: this.document.updated_at
     });
-
     this.library.exec(op);
-    
-    console.log('TEST', this.document);
-    this.document.initDoc();
+
   };
 
   this.synched = function(docId) {
@@ -239,7 +235,6 @@ Session.__prototype__ = function() {
       return false;
     }
   };
-
 
   // Get Dashboard Data
   // --------
@@ -444,7 +439,7 @@ Session.__prototype__ = function() {
 
   // Seed local store
   // --------
-  // 
+  //
   // only available for testing
 
   this.seed = function(seedData) {
@@ -460,37 +455,29 @@ Session.__prototype__ = function() {
 
   // Get Data.Object from library
   // --------
-  // 
+  //
 
   this.get = function(id) {
     return this.library.get(id);
   };
 };
-
-
 Session.prototype = new Session.__prototype__();
 _.extend(Session.prototype, util.Events);
 
-Session.Document = function(session, document, schema) {
-  var self = this;
 
+Session.Document = function(session, options) {
+  Substance.Document.call(this, options);
   this.session = session;
 
-  // TODO: Use versioned doc
-  Substance.Document.call(this, document, schema);
-
+  var self = this;
   this.entry = {
     get: function(property) {
       return session.library.query([self.id, property]);
     }
   };
-
-  this.entry.get = _.bind(this.entry.get, this);
 };
 
 Session.Document.__prototype__ = function() {
-
-  var __super__ = util.prototype(this);
 
   // When a doc changes, bind event handlers etc.
   this.initDoc = function() {
@@ -686,7 +673,6 @@ Session.Document.__prototype__ = function() {
     });
   };
 };
-
 
 // Inherit the prototype of Substance.Document which extends util.Events
 Session.Document.__prototype__.prototype = Substance.Document.prototype;
