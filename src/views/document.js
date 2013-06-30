@@ -101,7 +101,7 @@ sc.views.Document = Substance.View.extend({
   // 
 
   insertNode: function(type, options) {
-    var selection = this.session.users[this.session.user()].selection;
+    var selection = this.document.users[this.session.user()].selection;
 
     var target = -1; // insert at the back
     var properties = {};
@@ -526,9 +526,7 @@ sc.views.Document = Substance.View.extend({
 
     this.surface.on('content:changed', function(content, prevContent) {
       var delta = _.extractOperation(prevContent, content);
-      var opts = {};
-      opts[property] = delta;
-      that.model.document.apply(["set", opts]);
+      that.model.document.exec(Data.Graph.Update(["document", property], delta));
     });
   },
 

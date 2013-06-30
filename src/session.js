@@ -7,6 +7,7 @@ var Data = root.Substance.Data;
 var Library = root.Substance.Library;
 var MemoryStore = root.Substance.MemoryStore;
 var Ken = root.Ken;
+var Chronicle = root.Substance.Chronicle;
 
 // Substance.Session
 // -----------------
@@ -189,20 +190,16 @@ Session.__prototype__ = function() {
     }
   };
 
-  // Create a new document locally
-  // Schema is optional (currently only used by testsuite)
-  this.createDocument = function(options) {
-    options = options || {};
-
+  this.createDocument = function() {
     // create a new store area for the persistent document graph.
-    var seed = {
-      id: util.uuid(),
+    var options = {
+      id: options.id || util.uuid(),
       "creator": this.user(),
       "created_at": new Date()
     };
-    options.seed = seed;
-    options.store = this.localStore.subStore(["documents", seed.id]);
-    options.chronicle = this.localStore.subStore(["documents", seed.id, "index"]);
+
+    options.store = this.localStore.subStore(["documents", options.id]);
+    options.chronicle = Chronicle.create({store: this.localStore.subStore(["documents", options.id, "chronicle"])});
 
     this.document = new Session.Document(this, options);
     this.document.exec(Data.Graph.Set(["document", "title"], "Untitled"));
@@ -223,7 +220,6 @@ Session.__prototype__ = function() {
       updated_at: this.document.updated_at
     });
     this.library.exec(op);
-
   };
 
   this.synched = function(docId) {
@@ -274,8 +270,14 @@ Session.__prototype__ = function() {
       success: function(eLilfeDoc) {
         // Construct on the fly
 
+        var options = {
+          id: id
+        };
+        options.store = that.localStore.subStore(["documents", options.id]);
+        options.chronicle = Chronicle.create({store: that.localStore.subStore(["documents", options.id, "chronicle"])});
+
         // Start with an empty doc
-        var doc = new Session.Document(that, {id: id});
+        var doc = new Session.Document(that, options);
 
         // Supports text and heading nodes
         function insert(node) {
@@ -289,7 +291,7 @@ Session.__prototype__ = function() {
           }]);
 
           // position
-          doc.exec(["position", "content", {"nodes": [id], "target": -1 }]);
+          doc.exec(["position", "content", {"nodes": [id], "target": -1}]);
         }
 
         function annotate(a) {
@@ -704,7 +706,7 @@ _.extend(Substance.Comments.prototype, _.Events, {
 
   // Based on a new set of annotations (during editing)
   updateAnnotations: function(content, annotations) {
-    var node = this.node();
+    var node = this.document.node();
 
     // Only consider markers as comment scopes
     annotations = _.filter(annotations, function(a) {
