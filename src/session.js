@@ -8,6 +8,7 @@ var Library = root.Substance.Library;
 var MemoryStore = root.Substance.MemoryStore;
 var Ken = root.Ken;
 var Chronicle = root.Substance.Chronicle;
+var ot = Chronicle.ot;
 
 // Substance.Session
 // -----------------
@@ -22,10 +23,13 @@ var Session = function(options) {
   this.env = options.env;
   this.chronicle = Substance.Chronicle.create(Substance.Chronicle.Index.create());
   this.initStores();
-  this.store = new MemoryStore();
-  this.library = new Library({store: this.store});
 
-  this.seedLibrary();
+  this.library = new Library({store: this.localStore.subStore(["library"]), load: true});
+  try {
+    this.seedLibrary();
+  } catch(err) {
+    console.log("Library already seeded");
+  }
 };
 
 Session.__prototype__ = function() {
@@ -154,10 +158,11 @@ Session.__prototype__ = function() {
     //   };
     //   return new Substance.RedisStore(settings);
     // }
-    // if (Substance.LocalStore) {
-    //   return new Substance.LocalStore(scope);
-    // }
-    return new Substance.MemoryStore();
+    if (Substance.LocalStore) {
+      return new Substance.LocalStore(scope);
+    } else {
+      return new Substance.MemoryStore();
+    }
   };
 
   this.lazySync = _.debounce(function() {
@@ -193,7 +198,7 @@ Session.__prototype__ = function() {
   this.createDocument = function() {
     // create a new store area for the persistent document graph.
     var options = {
-      id: options.id || util.uuid(),
+      "id": util.uuid(),
       "creator": this.user(),
       "created_at": new Date()
     };
@@ -205,6 +210,8 @@ Session.__prototype__ = function() {
     this.document.exec(Data.Graph.Set(["document", "title"], "Untitled"));
     this.document.exec(Data.Graph.Set(["document", "abstract"], "Enter Abstract"));
     this.document.initDoc();
+
+    this.localStore.hash(["documents"]).set(options.id, true);
 
     // Register the new document in the Library
     var op = Data.Graph.Create({
@@ -220,6 +227,8 @@ Session.__prototype__ = function() {
       updated_at: this.document.updated_at
     });
     this.library.exec(op);
+    this.library.exec(Data.Graph.Update(["my_documents", "documents"], ot.ArrayOperation.Insert(0, this.document.id)));
+
   };
 
   this.synched = function(docId) {
@@ -259,9 +268,7 @@ Session.__prototype__ = function() {
     };
   };
 
-
-  // Load new Document from localStore
-  this.loadDocument = function(id, cb) {
+  var loadElifeDocument = function(id, cb) {
     var that = this;
 
     $.ajax({
@@ -279,6 +286,8 @@ Session.__prototype__ = function() {
         // Start with an empty doc
         var doc = new Session.Document(that, options);
 
+        var content = doc.get(["content", "nodes"])
+
         // Supports text and heading nodes
         function insert(node) {
           var id = _.htmlId(node.id).replace('-', '_');
@@ -290,8 +299,7 @@ Session.__prototype__ = function() {
             "content": node.content
           }]);
 
-          // position
-          doc.exec(["position", "content", {"nodes": [id], "target": -1}]);
+          doc.exec(["update", "content", "nodes", ot.ArrayOperation.Insert(content.length, id)]);
         }
 
         function annotate(a) {
@@ -329,12 +337,35 @@ Session.__prototype__ = function() {
         that.document = doc;
         that.document.initDoc();
 
+        that.localStore.hash(["documents"]).set(id, true);
+
         cb(null, doc);
       },
       error: function() {
         cb('error');
       }
     });
+  };
+
+  // Load new Document from localStore
+  this.loadDocument = function(id, cb) {
+    var docs = this.localStore.hash(["documents"]);
+    if (docs.contains(id)) {
+      var options = {
+        id: id
+      };
+      options.store = this.localStore.subStore(["documents", options.id]);
+      options.chronicle = Chronicle.create({store: this.localStore.subStore(["documents", options.id, "chronicle"])});
+      options.load = true;
+
+      var doc = new Session.Document(this, options);
+      this.document = doc;
+      this.document.initDoc();
+
+      cb(null, doc);
+    } else {
+      loadElifeDocument.call(this, id, cb);
+    }
   };
 
   this.deleteDocument = function(id) {
@@ -569,7 +600,7 @@ Session.Document.__prototype__ = function() {
     data.blobs = blobs;
 
     // Now create version on the server
-    var that = this;
+    //var that = this;
     this.client.createVersion(doc.id, data, function(err) {
       if (err) return cb(err);
       // doc.meta.published_at = new Date();
