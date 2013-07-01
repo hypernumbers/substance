@@ -24,12 +24,6 @@ var Session = function(options) {
   this.chronicle = Substance.Chronicle.create(Substance.Chronicle.Index.create());
   this.initStores();
 
-  this.library = new Library({store: this.localStore.subStore(["library"]), load: true});
-  try {
-    this.seedLibrary();
-  } catch(err) {
-    console.log("Library already seeded");
-  }
 };
 
 Session.__prototype__ = function() {
@@ -189,9 +183,16 @@ Session.__prototype__ = function() {
     if (username) {
       this.localStore = this.getUserStore(username);
       this.remoteStore = this.client.getUserStore(username);
+      this.library = new Library({store: this.localStore.subStore(["library"]), load: true});
+      try {
+        this.seedLibrary();
+      } catch(err) {
+        console.log("Library already seeded");
+      }
     } else {
       this.localStore = null;
       this.remoteStore = null;
+      this.library = null;
     }
   };
 
