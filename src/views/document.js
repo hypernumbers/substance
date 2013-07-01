@@ -240,7 +240,6 @@ sc.views.Document = Substance.View.extend({
   moveUp: function() {
     var selection = this.session.users[this.session.user()].selection;
     var target = this.getPredecessor(_.first(selection));
-    console.log('MOVEING UP', target);
     if (target !== null) this.document.exec(["position", "content", {"nodes": selection, "target": target}]);
   },
 
@@ -253,7 +252,7 @@ sc.views.Document = Substance.View.extend({
     // Skip when move handle has been clicked
     if ($(e.target).hasClass('move')) return;
     var id = $(e.currentTarget)[0].id;
-    this.session.select([id]);
+    this.session.document.select([id]);
   },
 
 
