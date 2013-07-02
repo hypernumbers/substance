@@ -5,7 +5,7 @@ var util = Substance.util;
 var _ = root._;
 var Data = root.Substance.Data;
 var Library = root.Substance.Library;
-var MemoryStore = root.Substance.MemoryStore;
+//var MemoryStore = root.Substance.MemoryStore;
 var Ken = root.Ken;
 var Chronicle = root.Substance.Chronicle;
 var ot = Chronicle.ot;
@@ -207,6 +207,7 @@ Session.__prototype__ = function() {
     options.chronicle = Chronicle.create({store: this.localStore.subStore(["documents", options.id, "chronicle"])});
 
     this.document = new Session.Document(this, options);
+
     this.document.exec(Data.Graph.Set(["document", "title"], "Untitled"));
     this.document.exec(Data.Graph.Set(["document", "abstract"], "Enter Abstract"));
     this.document.initDoc();
@@ -218,17 +219,17 @@ Session.__prototype__ = function() {
       id: this.document.id,
       type: "article",
       title: this.document.title, // derive dynamically
-      keywords: [],
+      keywords: this.document.keywords,
       creator: this.document.creator, // derive dynamically
+      created_at: this.document.created_at,
+      updated_at: this.document.updated_at,
       collaborators: [], // empty for now
       publications: [], // derive dynamically
       published_at: null, // derive dynamically
-      created_at: this.document.created_at,
-      updated_at: this.document.updated_at
     });
     this.library.exec(op);
     this.library.exec(Data.Graph.Update(["my_documents", "documents"], ot.ArrayOperation.Insert(0, this.document.id)));
-
+    this.library.observeDocument(this.document);
   };
 
   this.synched = function(docId) {
@@ -285,8 +286,9 @@ Session.__prototype__ = function() {
 
         // Start with an empty doc
         var doc = new Session.Document(that, options);
+        that.library.observeDocument(doc);
 
-        var content = doc.get(["content", "nodes"])
+        var content = doc.get(["content", "nodes"]);
 
         // Supports text and heading nodes
         function insert(node) {
@@ -359,6 +361,8 @@ Session.__prototype__ = function() {
       options.load = true;
 
       var doc = new Session.Document(this, options);
+      this.library.observeDocument(doc);
+
       this.document = doc;
       this.document.initDoc();
 
