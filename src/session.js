@@ -541,7 +541,8 @@ Session.Document.__prototype__ = function() {
   };
 
   this.select = function(range) {
-    this.selection = new Document.Range(range);
+    this.selection = new Document.Range(this, range);
+    return this.selection;
   };
 
   // this.selection = function() {
@@ -600,34 +601,42 @@ Session.Document.__prototype__ = function() {
 
     var ops = [];
 
-    // 1. Remove the selection
+    // Remove the selection
     // TODO: implement
 
-    // 2. Remove trailing stuff
-    var trailingText = node.content.slice(this.selection.start[1]);
+    // Remove trailing stuff
+    var nodePos = this.selection.start[0];
+    var cursorPos = this.selection.start[1];
+    var trailingText = node.content.slice(cursorPos);
+
     if (trailingText.length > 0) {
-      var r = [this.selection.start[1], -trailingText.length];
-      ops.push(Data.Graph.Update([node.id, "content"], ot.TextOperation.fromOT(node.content, r)));      
+      var r = [cursorPos, -trailingText.length];
+      ops.push(Data.Graph.Update([node.id, "content"], ot.TextOperation.fromOT(node.content, r)));
     }
 
     var id1 = type+"_"+util.uuid();
     var id2 = "text_"+util.uuid();
 
-    // 3. Insert new empty node
-    ops.push(Data.Graph.Create({id: id1,type: type}));
+    // Insert new node for trailingText
+    if (trailingText.length > 0) {
+      ops.push(Data.Graph.Create({
+        id: id2,
+        type: "text",
+        content: trailingText
+      }));
+      ops.push(Data.Graph.Update(["content", "nodes"], ot.ArrayOperation.Insert(nodePos+1, id2)));
+    }
 
-    // 4. Insert new node for trailingText
+    // Insert new empty node
     ops.push(Data.Graph.Create({
       id: id1,
-      type: "text",
-      content: trailingText
+      type: type
     }));
+    ops.push(Data.Graph.Update(["content", "nodes"], ot.ArrayOperation.Insert(nodePos+1, id1)));
 
-    // Do it!
-    // HACK: document.js does not support compounds yet
-    // using the low-level operation and executing with Data.Graphs low-level exec method
-    // TODO: unhack
-    this.__exec__(ot.ObjectOperation.Compound(ops));
+    // Execute all steps at once
+    this.exec(Data.Graph.Compound(this, ops));
+
     return this;
   };
 
