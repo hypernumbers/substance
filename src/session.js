@@ -537,7 +537,7 @@ Session.Document.__prototype__ = function() {
     //   // "text_26": new Document.Selection(this, ["text_26", "content"]),
     // };
 
-    // this.selection = new Document.Selection(this, ["content", "nodes"]);
+    this.selection = new Document.Range(this, null);
   };
 
   this.select = function(range) {
@@ -777,19 +777,20 @@ Session.Document.__prototype__ = function() {
   };
 
   // Retrieve current node selection
-  this.selection = function(user) {
-    if (!user) user = this.session.user();
-    return this.users[user].selection;
-  };
+  // this.selection = function(user) {
+  //   if (!user) user = this.session.user();
+  //   return this.users[user].selection;
+  // };
 
   // Returns the node id of current active node
   // Only works if there's just one node selected
   this.node = function() {
     var lvl = this.level(),
-        sel = this.selection();
+        selectedNodes = this.selection.getNodes();
 
-    if (lvl >= 2 && sel.length === 1) {
-      return sel[0];
+
+    if (lvl >= 2 && selectedNodes.length ) {
+      return selectedNodes[0];
     }
   };
 

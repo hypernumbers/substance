@@ -148,13 +148,13 @@ sc.views.Document = Substance.View.extend({
   // 
 
   updateMode: function() {
-    var selection = this.session.document.selection();
+    var selection = this.session.document.selection;
     $('#document').removeClass();
 
-    if (selection.length > 0) {
-      $('#document').addClass(this.session.document.edit ? 'edit-mode' : 'structure-mode');
-    } else {
+    if (selection.isNull()) {
       $('#document').addClass('document-mode');
+    } else {
+      $('#document').addClass(this.session.document.edit ? 'edit-mode' : 'structure-mode');
     }
 
     // Render context bar

@@ -520,24 +520,12 @@
 
     <script type="text/x-ejs-template" name="tools">
       <div class="tools">
-        <% if (selection().length === 0) { %>
-          <!--<div class="document-menu<%= selection() && selection().length > 0 ? "" : " active"%>">
-            <div class="tool-name">Document</div>
-            <div class="navigation">
-              <a class="toggle-tool comments<%= view === "comments" ? " active" : "" %>" href="#" data-view="comments">Comments</a>
-              <a class="toggle-tool history<%= view === "history" ? " active" : "" %>" href="#" data-view="history">History</a>
-            </div>
-          </div>-->
-        <% } %>
-        <% if (selection() && selection().length > 0) { %>
-          <div class="node-menu active">
-            <!--<div class="tool-name"><% if (selection().length === 1) { %>Text Element<% } else { %> Teh Selection <% } %></div>-->
-            <div class="navigation">
-              <!--<a class="toggle-tool comments" href="#" data-view="comments">CMTS</a>
-              <a class="toggle-tool edit" href="#" data-view="edit">EDIT</a>-->
-            </div>
+
+        <div class="node-menu active">
+          <div class="navigation">
           </div>
-        <% } %>
+        </div>
+
         <div class="tool">
           Actual node tool goes here.
         </div>

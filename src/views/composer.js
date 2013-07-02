@@ -140,8 +140,11 @@
 
     // TODO: Just testing the new multi-node selection API
     _getSelection: function(e, type) {
+
+      var indexOf = Array.prototype.indexOf;
       var sel = window.getSelection();
       if (sel.type === "None") return null;
+
       var range = sel.getRangeAt(0);
       var startContainer = range.startContainer;
       var endContainer = range.endContainer;
@@ -152,25 +155,36 @@
       var view = this.model.document.get('content').nodes;
 
       var startNode = view.indexOf($startContainer.parent().attr('id'));
-      var endNode = view.indexOf($endContainer.parent().attr('id'));
+      var startChar = startContainer.parentElement;
+      var startOffset = startContainer.nodeType === 3 ? indexOf.call($startContainer[0].childNodes, startChar) : 0;
 
-      // Usually refer to a span in 
-      var char1 = startContainer.parentElement;
-      var char2 = endContainer.parentElement;
+      var sel;
+      // console.log(startContainer, endContainer);
+      // Trivial case: the range is singular
+      if (startContainer === endContainer && startOffset === endOffset) {
+        console.log('MEH');
+        sel = {
+          start: [startNode, startOffset],
+          end: [startNode, startOffset],
+        };
+      } else {
+        var endNode = view.indexOf($endContainer.parent().attr('id'));
+        var endChar = endContainer.parentElement;
+        var endOffset = indexOf.call($endContainer[0].childNodes, endChar) + 1;
+        // startContainer.nodeType === 3 ? indexOf.call($startContainer.childNodes, parent) : 0;
+        
+        // There's an edge case at the very beginning
+        if (range.startOffset !== 0) startOffset += 1;
+        if (range.startOffset > 1) startOffset = range.startOffset;
 
-      var indexOf = Array.prototype.indexOf;
-      var startOffset = startContainer.nodeType === 3 ? indexOf.call($startContainer[0].childNodes, char1) : 0;
-      var endOffset = indexOf.call($endContainer[0].childNodes, char2) + 1;
-      // startContainer.nodeType === 3 ? indexOf.call($startContainer.childNodes, parent) : 0;
-      
-      // There's an edge case at the very beginning
-      if (range.startOffset !== 0) startOffset += 1;
-      if (range.startOffset > 1) startOffset = range.startOffset;
+        sel = {
+          start: [startNode, startOffset],
+          end: [endNode, endOffset],
+        };
+      }
 
-      return {
-        start: [startNode, startOffset],
-        end: [startNode, endOffset],
-      };
+      console.log(JSON.stringify(sel));
+      return sel;
     },
 
     _undo: function() {
