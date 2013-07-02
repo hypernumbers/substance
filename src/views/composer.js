@@ -41,6 +41,7 @@
       'delete-node': '_deleteNode',
       'insert-node': '_insertNode',
       'toggle-annotation': '_toggleAnnotation',
+      'get-selection': '_getSelection',
       'undo': '_undo',
       'redo': '_redo',
       'indent': '_indent',
@@ -112,49 +113,6 @@
       }
     },
 
-    // Break text into two pieces and move
-    _breakText: function(e) {
-      var that = this;
-
-      if (this.model.document.level() === 3) {
-        var selectedNode = _.first(this.model.document.selection());
-        var node = this.views.document.nodes[selectedNode];
-
-        if (!node) {
-          throw "corrupted model";
-        }
-
-        if (!_.include(["text", "heading", "code"], node.model.type)) return; // Skip for non-text nodes
-
-        if (node.model.type === "code") {
-          node.surface.addNewline();
-        } else {
-          var text = node.surface.model.content;
-          var sel = node.surface.selection();
-
-          // TODO: this is not working... furthermore, a bit under-documented...
-          // newContent is not used?
-          if(sel) {
-            var pos = sel[0]; // current cursor position
-            var remainder = _.rest(text, pos).join("");
-            // var newContent = text.substr(0, pos);
-            node.surface.deleteRange([pos, remainder.length]);
-            // node.surface.commit();
-
-
-
-
-
-            // that.views.document.insertNode("text", {content: remainder, target: node.model.id});
-
-          } else {
-            // that.views.document.insertNode("text", {content: "", target: node.model.id});
-          }
-        }
-        e.preventDefault();
-      }
-    },
-
     // Delete currently selected nodes
     _deleteNode: function(e) {
       if (this.model.document.level() === 2) {
@@ -178,6 +136,41 @@
         node.annotate(type);
         e.preventDefault();
       }
+    },
+
+    // TODO: Just testing the new multi-node selection API
+    _getSelection: function(e, type) {
+      var sel = window.getSelection();
+      if (sel.type === "None") return null;
+      var range = sel.getRangeAt(0);
+      var startContainer = range.startContainer;
+      var endContainer = range.endContainer;
+
+      var $startContainer = $(startContainer).parent().parent();
+      var $endContainer = $(endContainer).parent().parent();
+
+      var view = this.model.document.get('content').nodes;
+
+      var startNode = view.indexOf($startContainer.parent().attr('id'));
+      var endNode = view.indexOf($endContainer.parent().attr('id'));
+
+      // Usually refer to a span in 
+      var char1 = startContainer.parentElement;
+      var char2 = endContainer.parentElement;
+
+      var indexOf = Array.prototype.indexOf;
+      var startOffset = startContainer.nodeType === 3 ? indexOf.call($startContainer[0].childNodes, char1) : 0;
+      var endOffset = indexOf.call($endContainer[0].childNodes, char2) + 1;
+      // startContainer.nodeType === 3 ? indexOf.call($startContainer.childNodes, parent) : 0;
+      
+      // There's an edge case at the very beginning
+      if (range.startOffset !== 0) startOffset += 1;
+      if (range.startOffset > 1) startOffset = range.startOffset;
+
+      return {
+        start: [startNode, startOffset],
+        end: [startNode, endOffset],
+      };
     },
 
     _undo: function() {
@@ -282,34 +275,12 @@
       this.views.document.updateMode();
     },
 
-    // TODO: enable again
-    updateUndoRedoControls: function() {
-      // 
-      // var head = this.chronicle.getState();
-      // var last = this.chronicle.find('last');
-
-      // if (head === last) {
-      //   $('#document_menu .redo').addClass('disabled');
-      // } else {
-      //   $('#document_menu .redo').removeClass('disabled');
-      // }
-
-      // if (head === null) {
-      //   $('#document_menu .undo').addClass('disabled');
-      // } else {
-      //   $('#document_menu .undo').removeClass('disabled');
-      // }
-    },
-
     render: function() {
       var that = this;
       this.$el.html(_.tpl('composer'));
       this.renderDoc();
 
       that.updateMode();
-      _.delay(function() {
-        that.updateUndoRedoControls();
-      }, 1);
       return this;
     },
 

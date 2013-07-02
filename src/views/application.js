@@ -320,6 +320,10 @@
         this.trigger('message:toggle-annotation', e, 'error');
       }, this));
 
+      key('ctrl+r', _.bind(function(e) {
+        this.trigger('message:get-selection', e);
+      }, this));
+
 
       // Indent / Dedent Headings
       // ----------
