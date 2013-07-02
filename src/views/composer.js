@@ -161,7 +161,7 @@
       var sel;
       // console.log(startContainer, endContainer);
       // Trivial case: the range is singular
-      if (startContainer === endContainer && startOffset === endOffset) {
+      if (sel.isCollapsed) {
         console.log('MEH');
         sel = {
           start: [startNode, startOffset],
