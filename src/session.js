@@ -5,7 +5,7 @@ var util = Substance.util;
 var _ = root._;
 var Data = root.Substance.Data;
 var Library = root.Substance.Library;
-var MemoryStore = root.Substance.MemoryStore;
+//var MemoryStore = root.Substance.MemoryStore;
 var Ken = root.Ken;
 var Chronicle = root.Substance.Chronicle;
 var Document = Substance.Document;
@@ -208,6 +208,7 @@ Session.__prototype__ = function() {
     options.chronicle = Chronicle.create({store: this.localStore.subStore(["documents", options.id, "chronicle"])});
 
     this.document = new Session.Document(this, options);
+
     this.document.exec(Data.Graph.Set(["document", "title"], "Untitled"));
     this.document.exec(Data.Graph.Set(["document", "abstract"], "Enter Abstract"));
     this.document.initDoc();
@@ -219,17 +220,17 @@ Session.__prototype__ = function() {
       id: this.document.id,
       type: "article",
       title: this.document.title, // derive dynamically
-      keywords: [],
+      keywords: this.document.keywords,
       creator: this.document.creator, // derive dynamically
+      created_at: this.document.created_at,
+      updated_at: this.document.updated_at,
       collaborators: [], // empty for now
       publications: [], // derive dynamically
       published_at: null, // derive dynamically
-      created_at: this.document.created_at,
-      updated_at: this.document.updated_at
     });
     this.library.exec(op);
     this.library.exec(Data.Graph.Update(["my_documents", "documents"], ot.ArrayOperation.Insert(0, this.document.id)));
-
+    this.library.observeDocument(this.document);
   };
 
   this.synched = function(docId) {
@@ -286,8 +287,9 @@ Session.__prototype__ = function() {
 
         // Start with an empty doc
         var doc = new Session.Document(that, options);
+        that.library.observeDocument(doc);
 
-        var content = doc.get(["content", "nodes"])
+        var content = doc.get(["content", "nodes"]);
 
         // Supports text and heading nodes
         function insert(node) {
@@ -360,6 +362,8 @@ Session.__prototype__ = function() {
       options.load = true;
 
       var doc = new Session.Document(this, options);
+      this.library.observeDocument(doc);
+
       this.document = doc;
       this.document.initDoc();
 
@@ -537,7 +541,8 @@ Session.Document.__prototype__ = function() {
   };
 
   this.select = function(range) {
-    this.selection = new Document.Range(range);
+    this.selection = new Document.Range(this, range);
+    return this.selection;
   };
 
   // this.selection = function() {
@@ -596,34 +601,42 @@ Session.Document.__prototype__ = function() {
 
     var ops = [];
 
-    // 1. Remove the selection
+    // Remove the selection
     // TODO: implement
 
-    // 2. Remove trailing stuff
-    var trailingText = node.content.slice(this.selection.start[1]);
+    // Remove trailing stuff
+    var nodePos = this.selection.start[0];
+    var cursorPos = this.selection.start[1];
+    var trailingText = node.content.slice(cursorPos);
+
     if (trailingText.length > 0) {
-      var r = [this.selection.start[1], -trailingText.length];
-      ops.push(Data.Graph.Update([node.id, "content"], ot.TextOperation.fromOT(node.content, r)));      
+      var r = [cursorPos, -trailingText.length];
+      ops.push(Data.Graph.Update([node.id, "content"], ot.TextOperation.fromOT(node.content, r)));
     }
 
     var id1 = type+"_"+util.uuid();
     var id2 = "text_"+util.uuid();
 
-    // 3. Insert new empty node
-    ops.push(Data.Graph.Create({id: id1,type: type}));
+    // Insert new node for trailingText
+    if (trailingText.length > 0) {
+      ops.push(Data.Graph.Create({
+        id: id2,
+        type: "text",
+        content: trailingText
+      }));
+      ops.push(Data.Graph.Update(["content", "nodes"], ot.ArrayOperation.Insert(nodePos+1, id2)));
+    }
 
-    // 4. Insert new node for trailingText
+    // Insert new empty node
     ops.push(Data.Graph.Create({
       id: id1,
-      type: "text",
-      content: trailingText
+      type: type
     }));
+    ops.push(Data.Graph.Update(["content", "nodes"], ot.ArrayOperation.Insert(nodePos+1, id1)));
 
-    // Do it!
-    // HACK: document.js does not support compounds yet
-    // using the low-level operation and executing with Data.Graphs low-level exec method
-    // TODO: unhack
-    this.__exec__(ot.ObjectOperation.Compound(ops));
+    // Execute all steps at once
+    this.exec(Data.Graph.Compound(this, ops));
+
     return this;
   };
 
