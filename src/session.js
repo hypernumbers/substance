@@ -8,6 +8,7 @@ var Library = root.Substance.Library;
 //var MemoryStore = root.Substance.MemoryStore;
 var Ken = root.Ken;
 var Chronicle = root.Substance.Chronicle;
+var Document = Substance.Document;
 var ot = Chronicle.ot;
 
 // Substance.Session
@@ -23,13 +24,6 @@ var Session = function(options) {
   this.env = options.env;
   this.chronicle = Substance.Chronicle.create(Substance.Chronicle.Index.create());
   this.initStores();
-
-  this.library = new Library({store: this.localStore.subStore(["library"]), load: true});
-  try {
-    this.seedLibrary();
-  } catch(err) {
-    console.log("Library already seeded");
-  }
 };
 
 Session.__prototype__ = function() {
@@ -189,9 +183,16 @@ Session.__prototype__ = function() {
     if (username) {
       this.localStore = this.getUserStore(username);
       this.remoteStore = this.client.getUserStore(username);
+      this.library = new Library({store: this.localStore.subStore(["library"]), load: true});
+      try {
+        this.seedLibrary();
+      } catch(err) {
+        console.log("Library already seeded");
+      }
     } else {
       this.localStore = null;
       this.remoteStore = null;
+      this.library = null;
     }
   };
 
@@ -529,38 +530,165 @@ Session.Document.__prototype__ = function() {
       "color": "#2F2B26",
       "selection": []
     };
+
+
+    // this.selections = {
+    //   // "document": new Document.Selection(this, ["content", "nodes"]),
+    //   // "text_26": new Document.Selection(this, ["text_26", "content"]),
+    // };
+
+    // this.selection = new Document.Selection(this, ["content", "nodes"]);
   };
 
+  this.select = function(range) {
+    this.selection = new Document.Range(range);
+  };
+
+  // this.selection = function() {
+  //   return this.selection;
+  // };
+
+  // this.getSelection = function() {
+  //   return this.selections["document"];
+  // };
+
+  // this.getSelection() {
+
+  // };
+
+
+  // CreateEmptyNode
+  this.createEmptyNode = function(type, options) {
+    var selection = this.document.users[this.session.user()].selection;
+
+    var node = _.last(selection);
+
+    var node = {
+      "id": Substance.util.uuid(type+"_", 8),
+      "type": type
+    };
+
+    node["content"] = options.content || "";
+    if (type === "heading") node["level"] = 1;
+    this.createNode(node, options);
+
+    // check cases
+    // this.getSelection().getSelection())
+    // var node = this.getSelectedNode();
+
+    // image
+    // var nodeSel = getNodeSelection(node);
+    // 0,1
+
+    // 1. fall insert node after current
+    // nodeSel.lastSelected();
+    // 2. fall insert node before current
+    // 3. fall split node and insert between
+
+  };
+
+  // Based on current selection, insert new node
+
+  this.insertNode = function(type) {
+
+    if (!this.selection.isCollapsed()) {
+      throw new Error('Not yet implemented for actual ranges');
+    }
+
+    var nodes = this.selection.getNodes(this);
+    var node = nodes[0];
+
+    var ops = [];
+
+    // 1. Remove the selection
+    // TODO: implement
+
+    // 2. Remove trailing stuff
+    var trailingText = node.content.slice(this.selection.start[1]);
+    if (trailingText.length > 0) {
+      var r = [this.selection.start[1], -trailingText.length];
+      ops.push(Data.Graph.Update([node.id, "content"], ot.TextOperation.fromOT(node.content, r)));      
+    }
+
+    var id1 = type+"_"+util.uuid();
+    var id2 = "text_"+util.uuid();
+
+    // 3. Insert new empty node
+    ops.push(Data.Graph.Create({id: id1,type: type}));
+
+    // 4. Insert new node for trailingText
+    ops.push(Data.Graph.Create({
+      id: id1,
+      type: "text",
+      content: trailingText
+    }));
+
+    // Do it!
+    // HACK: document.js does not support compounds yet
+    // using the low-level operation and executing with Data.Graphs low-level exec method
+    // TODO: unhack
+    this.__exec__(ot.ObjectOperation.Compound(ops));
+    return this;
+  };
+
+  // Creates a new node on the document
+  this.createNode = function(node, options) {
+    var view = this.get('content').nodes;
+    var target;
+
+    if (options) {
+      target = view.indexOf(options.target);
+      if (target >= 0 && options.mode !== "front") target += 1;
+    } else {
+      target = -1;
+    }
+
+    // properties["content"] = options.content || "";
+    // if (type === "heading") properties["level"] = 1;
+
+    // var newNode = _.extend(properties, {
+    //   "id": Substance.util.uuid(type+"_", 8),
+    //   "type": type
+    // });
+
+    // 1. Create fresh content node
+    this.document.exec(["create", node]);
+
+    // 2. Position the fresh node
+    this.document.exec(["position", "content", {"nodes": [node.id], "target": target }]);
+  };
 
   // Select document node(s)
   // Triggers re-render of comments panel etc.
-  this.select = function(nodes, options) {
+  // this.select = function(nodes, options) {
 
-    if (!options) options = {};
-    var user = this.session.user(); // Use current user by default
+  //   if (!options) options = {};
+  //   var user = this.session.user(); // Use current user by default
 
-    // Do nothing if selection hasn't changed
-    // It's considered a change if you operate on the same node
-    // but change from edit to selection mode (options.edit check)
-    if (!this.selectionChanged(user, nodes, !!options.edit)) return;
+  //   // Do nothing if selection hasn't changed
+  //   // It's considered a change if you operate on the same node
+  //   // but change from edit to selection mode (options.edit check)
+  //   if (!this.selectionChanged(user, nodes, !!options.edit)) return;
 
-    this.edit = !!options.edit;
+  //   this.edit = !!options.edit;
 
-    if (this.users[user].selection) {
-      _.each(this.users[user].selection, function(node) {
-        delete this.selections[node];
-      }, this);
-    }
+  //   if (this.users[user].selection) {
+  //     _.each(this.users[user].selection, function(node) {
+  //       delete this.selections[node];
+  //     }, this);
+  //   }
 
-    this.users[user].selection = nodes;
-    _.each(nodes, function(node) {
-      this.selections[node] = user;
-    }, this);
+  //   this.users[user].selection = nodes;
+  //   _.each(nodes, function(node) {
+  //     this.selections[node] = user;
+  //   }, this);
 
-    // New selection leads to new comment context
-    this.comments.compute();
-    this.trigger('node:selected');
-  };
+
+  //   // console.log('selected', nodes);
+  //   // New selection leads to new comment context
+  //   this.comments.compute();
+  //   this.trigger('node:selected');
+  // };
 
   this.createPublication = function(network, cb) {
     this.session.client.createPublication(this.id, network, function(err) {

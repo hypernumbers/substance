@@ -28,15 +28,17 @@ sc.views.Document = Substance.View.extend({
     this.session = this.model;
     this.document = this.session.document;
 
+    
     // Delegate update commands
     this.document.on('command:executed', function(command) {
-      switch(command.op) {
+      switch(command.type) {
         // case "create": that.create(command.args); break;
         case "position": that.position(command.args); break;
         case "update": that.update(that.document.get(command.path[0]), command.args); break;
         case "delete": that.delete(command.args); break;
       }
     });
+
 
     // Handlers
     function highlightAnnotation(scope, node, annotation) {
@@ -81,8 +83,8 @@ sc.views.Document = Substance.View.extend({
     Substance.router.off('node:dirty', updateNode);
     Substance.router.on('node:dirty', updateNode, this);
 
-    this.session.off('node:selected', this.updateSelections);
-    this.session.on('node:selected', this.updateSelections, this);
+    this.session.document.off('node:selected', this.updateSelections);
+    this.session.document.on('node:selected', this.updateSelections, this);
     this.build();
 
     $(document.body).keydown(this.onKeydown);
@@ -100,26 +102,37 @@ sc.views.Document = Substance.View.extend({
   // --------
   // 
 
-  insertNode: function(type, options) {
-    var selection = this.document.users[this.session.user()].selection;
+  // insertNode: function(type, options) {
+  //   var selection = this.document.users[this.session.user()].selection;
 
-    var target = -1; // insert at the back
-    var properties = {};
+  //   var xyz = "foo";
+  //   var node = _.last(selection);
 
-    properties["content"] = options.content || "";
-    if (type === "heading") properties["level"] = 1;
+  //   console.log('inserting...', node, 'back');
 
-    var newNode = _.extend(properties, {
-      "id": Substance.util.uuid(type+"_", 8),
-      "type": type
-    });
+  //   this.session.createEmptyNode(type, {target: node, })
+
+  //   // this.session.createEmptyNode(type)
+
+
+  //   // console.log('SEL', selection);
+  //   // var target = -1; // insert at the back
+  //   // var properties = {};
+
+  //   // properties["content"] = options.content || "";
+  //   // if (type === "heading") properties["level"] = 1;
+
+  //   // var newNode = _.extend(properties, {
+  //   //   "id": Substance.util.uuid(type+"_", 8),
+  //   //   "type": type
+  //   // });
       
-    // 1. Create fresh content node
-    this.document.exec(["create", newNode]);
+  //   // // 1. Create fresh content node
+  //   // this.document.exec(["create", newNode]);
 
-    // 2. Position the fresh node
-    this.document.exec(["position", "content", {"nodes": [newNode.id], "target": target }]);
-  },
+  //   // // 2. Position the fresh node
+  //   // this.document.exec(["position", "content", {"nodes": [newNode.id], "target": target }]);
+  // },
 
   // Delete current selection
   // --------
@@ -168,32 +181,34 @@ sc.views.Document = Substance.View.extend({
     $('.annotation-tools').hide();
 
     this.updateMode();
-    _.each(this.session.selections, function(user, node) {
+    _.each(this.session.document.selections, function(user, node) {
       $('#'+_.htmlId(node)).addClass('selected');
     }, this);
   },
 
   // Select next node
   // --------
+  // 
 
   selectNext: function() {
-    var selection = this.session.users[this.session.user()].selection;
+    var selection = this.session.document.users[this.session.user()].selection;
     var nodes = this.document.get('content').nodes;
-    if (selection.length === 0) return this.session.select([_.first(nodes)]);
+    if (selection.length === 0) return this.session.document.select([_.first(nodes)]);
 
     var nextPos = this.getSuccessor(_.last(selection));
-    if (nextPos !== null) return this.session.select([this.getId(nextPos)]);
+    if (nextPos !== null) return this.session.document.select([this.getId(nextPos)]);
   },
 
   // Select previous node
   // --------
+  // 
 
   selectPrev: function() {
-    var selection = this.session.users[this.session.user()].selection;
+    var selection = this.session.document.users[this.session.user()].selection;
     var nodes = this.document.get('content').nodes;
-    if (selection.length === 0) return this.session.select([_.last(nodes)]);
+    if (selection.length === 0) return this.session.document.select([_.last(nodes)]);
     var prevPos = this.getPredecessor(_.last(selection));
-    if (prevPos !== null) return this.session.select([this.getId(prevPos)]);
+    if (prevPos !== null) return this.session.document.select([this.getId(prevPos)]);
   },
 
   // Expand current selection
@@ -201,14 +216,14 @@ sc.views.Document = Substance.View.extend({
   // 
 
   expandSelection: function() {
-    var selection = this.session.users[this.session.user()].selection;
+    var selection = this.session.document.users[this.session.user()].selection;
     var lastnode = _.last(selection);
     var doc = this.document;
 
     if (lastnode) {
       var next = this.getId(this.getSuccessor(lastnode));
       if (next) {
-        this.session.select(selection.concat([next]));
+        this.session.document.select(selection.concat([next]));
       }
     }
   },
@@ -218,8 +233,8 @@ sc.views.Document = Substance.View.extend({
   // 
 
   narrowSelection: function() {
-    var selection = this.session.users[this.session.user()].selection;
-    this.session.select(_.clone(selection).splice(0, selection.length-1));
+    var selection = this.session.document.users[this.session.user()].selection;
+    this.session.document.select(_.clone(selection).splice(0, selection.length-1));
   },
 
 
@@ -228,7 +243,7 @@ sc.views.Document = Substance.View.extend({
   // 
 
   moveDown: function() {
-    var selection = this.session.users[this.session.user()].selection;
+    var selection = this.session.document.users[this.session.user()].selection;
     var target = this.getSuccessor(_.last(selection));
     if (target !== null) this.document.exec(["position", "content", {"nodes": selection, "target": target}]);
   },
@@ -238,9 +253,8 @@ sc.views.Document = Substance.View.extend({
   // 
 
   moveUp: function() {
-    var selection = this.session.users[this.session.user()].selection;
+    var selection = this.session.document.users[this.session.user()].selection;
     var target = this.getPredecessor(_.first(selection));
-    console.log('MOVEING UP', target);
     if (target !== null) this.document.exec(["position", "content", {"nodes": selection, "target": target}]);
   },
 
@@ -253,7 +267,7 @@ sc.views.Document = Substance.View.extend({
     // Skip when move handle has been clicked
     if ($(e.target).hasClass('move')) return;
     var id = $(e.currentTarget)[0].id;
-    this.session.select([id]);
+    this.session.document.select([id]);
   },
 
 
@@ -285,6 +299,7 @@ sc.views.Document = Substance.View.extend({
   position: function(options) {
     var that = this;
 
+    // console.log('positioning..');
     // remember new node (needs focus afterwards)
     var newNode = null;
 

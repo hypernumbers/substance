@@ -636,6 +636,32 @@ h2 { font-size: 160%; padding-bottom: 15px; }
   position: relative;
 }
 
+#container #document .content-node .placeholder {
+  /*background: #efefef;*/
+  margin-left: 80px;
+  margin-right: 80px;
+  text-align: center;
+  font-size: 11px;
+  font-family: 'Avenir LT W01 85 Heavy', 'Montserrat', 'Source Sans Pro';
+  text-transform: uppercase;
+  /*opacity: 0;*/
+  height: 30px;
+  cursor: pointer;
+  border: 1px dashed #eee;
+}
+
+#container #document .content-node .placeholder span {
+  display: none;
+}
+
+#container #document .content-node .placeholder:hover {
+  /*opacity: 1;*/
+}
+
+#container #document .content-node .placeholder:hover span {
+  display: inline;
+}
+
 /* Currently not used */
 #container #document .content-node .annotations {
   position: absolute;

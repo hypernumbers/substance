@@ -129,7 +129,7 @@
         if (node.model.type === "code") {
           node.surface.addNewline();
         } else {
-          var text = node.surface.content;
+          var text = node.surface.model.content;
           var sel = node.surface.selection();
 
           // TODO: this is not working... furthermore, a bit under-documented...
@@ -139,10 +139,16 @@
             var remainder = _.rest(text, pos).join("");
             // var newContent = text.substr(0, pos);
             node.surface.deleteRange([pos, remainder.length]);
-            node.surface.commit();
-            that.views.document.insertNode("text", {content: remainder, target: node.model.id});
+            // node.surface.commit();
+
+
+
+
+
+            // that.views.document.insertNode("text", {content: remainder, target: node.model.id});
+
           } else {
-            that.views.document.insertNode("text", {content: "", target: node.model.id});
+            // that.views.document.insertNode("text", {content: "", target: node.model.id});
           }
         }
         e.preventDefault();
@@ -159,7 +165,9 @@
 
     // Insert node based on current selection
     _insertNode: function(e, type) {
-      this.views.document.insertNode(type, {});
+      // this.views.document.insertNode(type, {});
+      this.session.createEmptyNode(type);
+
       e.preventDefault();
     },
 

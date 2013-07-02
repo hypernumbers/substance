@@ -145,7 +145,6 @@
     document: function(id) {
       var that = this;
       this.session.loadDocument(id, function(err, doc) {
-
         if (that.view) that.view.dispose();
         that.view = new sc.views.Editor({ model: that.session });
 
@@ -154,12 +153,7 @@
 
         // Shortcuts
         // window.doc = session.document;
-        that.listenForDocumentChanges();
       });
-      
-      // this.render();
-      // this.listenForDocumentChanges();
-      // this.newDocument();
     },
 
     // Toggle document view
@@ -185,20 +179,6 @@
       return;
     },
 
-    // TODO: find a better way
-    listenForDocumentChanges: function() {
-      var that = this;
-      var doc = this.view.model.document;
-
-      doc.on('commit:applied', function(commit) {
-        // Update publish state
-        that.view.updatePublishState();
-        if (commit.op[0] === "set") {
-          var title = doc.properties.title;
-          that.$('.menu .document').html(title);
-        }
-      });
-    },
 
     // Create and edit a new document
     // ---------------
@@ -210,11 +190,6 @@
       this.view = new sc.views.Editor({ model: session });
       this.render();
       Substance.router.navigate('documents/'+session.document.id, false);
-
-      // Shortcuts
-      //window.doc = session.document;
-
-      this.listenForDocumentChanges();
     },
 
     // User dashboard
@@ -233,7 +208,6 @@
       });
       that.render();
       Substance.router.navigate('/dashboard/'+collection);
-
       return;
     },
 
