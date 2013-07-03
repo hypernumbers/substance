@@ -144,6 +144,10 @@
     // Toggle document view
     document: function(id) {
       var that = this;
+
+      // TODO: remove hack
+      if (!Substance.session.user()) return this.login();
+
       this.session.loadDocument(id, function(err, doc) {
         if (that.view) that.view.dispose();
         that.view = new sc.views.Editor({ model: that.session });
@@ -160,6 +164,8 @@
     console: function(id) {
       var that = this;
 
+      // TODO: remove hack
+      if (!Substance.session.user()) return this.login();
       Substance.session.loadDocument(id);
 
       // Shortcuts

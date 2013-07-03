@@ -68,6 +68,14 @@
       }
     },
 
+    // Breaking se text
+    _breakText: function(e) {
+      // console.log('eeeehehe', e);
+      this.model.document.insertNode('text');
+      console.log('meh');
+      e.preventDefault();
+    },
+
     // Move current selection down by one
     _moveDown: function(e) {
       if (this.model.document.level() === 2) {
@@ -162,7 +170,6 @@
       // console.log(startContainer, endContainer);
       // Trivial case: the range is singular
       if (sel.isCollapsed) {
-        console.log('MEH');
         sel = {
           start: [startNode, startOffset],
           end: [startNode, startOffset],
@@ -183,7 +190,6 @@
         };
       }
 
-      console.log(JSON.stringify(sel));
       return sel;
     },
 
@@ -259,10 +265,18 @@
     },
 
     initialize: function() {
+      console.log('initiaize');
+      var that = this;
       this.mode = "edit";
       // this.model = this.model;
       this.chronicle = this.model.chronicle;
       this.init();
+
+      document.addEventListener('mouseup', function() {
+        // console.log('mouseoup');
+        that.model.document.select(that._getSelection())
+        // console.log(JSON.stringify(that._getSelection()));
+      });
     },
 
 
@@ -295,6 +309,9 @@
       this.renderDoc();
 
       that.updateMode();
+
+
+
       return this;
     },
 

@@ -65,6 +65,8 @@ sc.views.Node.define('text', _.extend(sc.views.Textish, {
 
   render: function() {
     sc.views.Node.prototype.render.apply(this, arguments);
+
+    // this.$('.content').html(this.model.content);
     this.initSurface();
     return this;
   }

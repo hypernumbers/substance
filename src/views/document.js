@@ -40,6 +40,37 @@ sc.views.Document = Substance.View.extend({
     });
 
 
+    this.document.on('graph:changed', function(op) {
+      // console.log('graph changed', op);
+      // HACK!!!! insert convenience
+      if (op.ops) {
+        _.each(op.ops, function(op) {
+          if (_.isEqual(op.path, ["content", "nodes"])) {
+            console.log('posiitoning', op);
+            var diff = op.diff;
+            if (diff.type === "insert") {
+              that.insertNode(diff.val, diff.pos);
+            } else if (diff.type === "move") {
+
+            } else if (diff.type === "delete") {
+
+            }
+
+          } else if (op.path[1] === "content") {
+            var node = op.path[0];
+            console.log('ladies, this is an update', op);
+            if (op.diff.type === ot.TextOperation.DEL) {
+              console.log('TODO: deleting the shit out of it');
+            } else {
+              // Re-render
+              that.nodes[node].render();
+            }
+          }
+        });
+      }
+    });
+
+
     // Handlers
     function highlightAnnotation(scope, node, annotation) {
       var a = this.document.nodes[annotation];
@@ -102,37 +133,6 @@ sc.views.Document = Substance.View.extend({
   // --------
   // 
 
-  // insertNode: function(type, options) {
-  //   var selection = this.document.users[this.session.user()].selection;
-
-  //   var xyz = "foo";
-  //   var node = _.last(selection);
-
-  //   console.log('inserting...', node, 'back');
-
-  //   this.session.createEmptyNode(type, {target: node, })
-
-  //   // this.session.createEmptyNode(type)
-
-
-  //   // console.log('SEL', selection);
-  //   // var target = -1; // insert at the back
-  //   // var properties = {};
-
-  //   // properties["content"] = options.content || "";
-  //   // if (type === "heading") properties["level"] = 1;
-
-  //   // var newNode = _.extend(properties, {
-  //   //   "id": Substance.util.uuid(type+"_", 8),
-  //   //   "type": type
-  //   // });
-      
-  //   // // 1. Create fresh content node
-  //   // this.document.exec(["create", newNode]);
-
-  //   // // 2. Position the fresh node
-  //   // this.document.exec(["position", "content", {"nodes": [newNode.id], "target": target }]);
-  // },
 
   // Delete current selection
   // --------
@@ -291,6 +291,41 @@ sc.views.Document = Substance.View.extend({
   //   var baseType = this.document.schema.baseType(node.type); 
   //   if (baseType !== "content") return; // skip non-content nodes
   // },
+
+
+  insertNode: function(id, pos) {
+    // function insertAppend(successor, el, ch) {
+    //   if (successor) {
+    //     el.insertBefore(ch, successor);
+    //   } else {
+    //     el.appendChild(ch);
+    //   }
+    // }
+    var nodeView = this.createNodeView(this.model.document.get(id));
+    var el = nodeView.render().el;
+    this.nodes[id] = nodeView;
+    console.log('inserting', nodeView);
+    var container = $('#document .nodes')[0];
+    var childs = container.childNodes;
+    if (pos < childs.length) {
+      console.log('insert before...', container);
+      var refNode = childs[pos];
+      console.log('refnode', refNode);
+      container.insertBefore(el, refNode);
+    } else {
+      container.appendChild(el);
+    }
+
+    // console.log('meh', contentContainer);
+  },
+
+  moveNode: function() {
+
+  },
+
+  deleteNode: function() {
+
+  },
 
   // Arrange content nodes
   // --------
