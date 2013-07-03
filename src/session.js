@@ -472,7 +472,11 @@ Session.__prototype__ = function() {
   };
 
   this.createReplicator = function() {
-    return new Substance.Replicator2({local: this.localStore, remote: this.remoteStore, remoteID: "substance.io"});
+    return new Substance.Replicator2({
+      local: this.localStore,
+      remote: this.remoteStore,
+      remoteID: "substance.io"
+    });
   };
 
 
@@ -500,6 +504,8 @@ Session.__prototype__ = function() {
     return this.library.get(id);
   };
 };
+
+
 Session.prototype = new Session.__prototype__();
 _.extend(Session.prototype, util.Events);
 
@@ -517,6 +523,10 @@ Session.Document = function(session, options) {
 
   var self = this;
   this.entry = {
+
+    // Get given property for the document entry
+    // --------
+    // 
     get: function(property) {
       return session.library.query([self.id, property]);
     }
@@ -532,89 +542,196 @@ Session.Document.__prototype__ = function() {
     this.selection = new Document.Range(this, null);
   };
 
+  // Make a new selection on the document
+  // --------
+
   this.select = function(range) {
     this.selection = new Document.Range(this, range);
     return this.selection;
   };
 
   // Cut current selection from document
+  // --------
+  // 
   // Cutted content gets stored in clipboard as a new Substance.Document
-  this.cutSelection = function() {
 
+  this.cut = function() {
+    this.copy();
+    this.delete();
+  };
+
+  // Delete current selection
+  // --------
+  // 
+
+  this.delete = function() {
     // Convenience vars
     var startNode = this.selection.start[0];
     var startOffset = this.selection.start[1];
     var endNode = this.selection.end[0];
     var endOffset = this.selection.end[1];
-
     var nodes = this.selection.getNodes(this);
-    // var node = nodes[0]; // first node of selection
 
     var ops = []; // operations transforming the original doc
-    var clipboardOps = []; // operations building the new document (clipboard)
 
-    if (nodes.length > 0) {
+    if (nodes.length > 1) {
+
       // Remove trailing stuff
-      
       _.each(nodes, function(node, index) {
         // only consider textish nodes for now
-        if (n.content) {
+        if (node.content) {
           if (index === 0) {
             var trailingText = node.content.slice(startOffset);
             var r = [startOffset, -trailingText.length];
-
             // remove trailing text from first node at the beginning of the selection
             ops.push(Data.Graph.Update([node.id, "content"], ot.TextOperation.fromOT(node.content, r)));
-            // Add trailing text to clipboard
-            // clipboardOps.push(Data.Graph.Create({
-            //   id: util.uuid(),
-            //   type: "text",
-            //   content: trailingText
-            // }));
           } else if (index === nodes.length-1) {
             // Last node of selection
-            // TODO: Implement!
+            var text = node.content.slice(0, endOffset);
+            var r = [-text.length];
+
+            // remove preceding text from last node until the end of the selection
+            ops.push(Data.Graph.Update([node.id, "content"], ot.TextOperation.fromOT(node.content, r)));
           } else {
             // Delete node from document
             ops.push(Data.Graph.Delete(_.clone(node)));
             var pos = this.get('content').nodes.indexOf(node.id);
             // ... and from view
             ops.push(Data.Graph.Update(["content", "nodes"], ot.ArrayOperation.Delete(pos, node.id)));
-
-            var nodeId = util.uuid();
-            // Insert node in clipboard document
-            clipboardOps.push(Data.Graph.Create(_.extend(_.clone(node), {id: nodeId})));
-            // ... and view
-            clipboardOps.push(Data.Graph.Update(["content", "nodes"], ot.ArrayOperation.Insert(index, node.id)));
           }
         }
       }, this);
     } else {
-      // TODO: implement cut within just one node
+      var node = nodes[0];
+      var text = node.content.slice(startOffset, endOffset);
+      var r = [startOffset, -text.length];
+      // remove trailing text from first node at the beginning of the selection
+      ops.push(Data.Graph.Update([node.id, "content"], ot.TextOperation.fromOT(node.content, r)));
     }
 
-    // Trying to use a plain Substance.Document (maybe we need Session.Document here too)
-    this.clipboard = new Substance.Document(this.session, {id: "clipboard-doc"});
-
-    _.each(clipboardOps, function(op) {
-      this.clipboard.exec(op);
-    }, this);
-
+    this.exec(Data.Graph.Compound(this, ops));
   };
 
-  // Removes current selection from the document
-  this.deleteSelection = function() {
+  this.copy = function() {
+    // Convenience vars
+    var startNode = this.selection.start[0];
+    var startOffset = this.selection.start[1];
+    var endNode = this.selection.end[0];
+    var endOffset = this.selection.end[1];
+    var nodes = this.selection.getNodes(this);
 
+    var clipboard = new Substance.Document({id: "clipboard"});
+
+    if (nodes.length > 1) {
+      // Remove trailing stuff
+      _.each(nodes, function(node, index) {
+        // only consider textish nodes for now
+        if (node.content) {
+          if (index === 0) {
+            var trailingText = node.content.slice(startOffset);
+            var r = [startOffset, -trailingText.length];
+
+            // Add trailing text to clipboard
+            var nodeId = util.uuid();
+            clipboard.exec(Data.Graph.Create({
+              id: nodeId,
+              type: "text",
+              content: trailingText
+            }));
+            // and the clipboards content view
+            clipboard.exec(Data.Graph.Update(["content", "nodes"], ot.ArrayOperation.Insert(index, nodeId)));
+          } else if (index === nodes.length-1) {
+            // Last node of selection
+            var text = node.content.slice(0, endOffset);
+            var r = [-text.length];
+
+            // Add selected text from last node to clipboard
+            var nodeId = util.uuid();
+            clipboard.exec(Data.Graph.Create({
+              id: nodeId,
+              type: "text",
+              content: text
+            }));
+            clipboard.exec(Data.Graph.Update(["content", "nodes"], ot.ArrayOperation.Insert(index, nodeId)));
+          } else {
+            var nodeId = util.uuid();
+            // Insert node in clipboard document
+            clipboard.exec(Data.Graph.Create(_.extend(_.clone(node), {id: nodeId})));
+            // ... and view
+            clipboard.exec(Data.Graph.Update(["content", "nodes"], ot.ArrayOperation.Insert(index, nodeId)));
+          }
+        }
+      }, this);
+    } else {
+      var node = nodes[0];
+      var text = node.content.slice(startOffset, endOffset);
+
+      var nodeId = util.uuid();
+      clipboard.exec(Data.Graph.Create({
+        id: nodeId,
+        type: "text",
+        content: text
+      }));
+      clipboard.exec(Data.Graph.Update(["content", "nodes"], ot.ArrayOperation.Insert(0, nodeId)));
+    }
+
+    // Expose clipboard to session
+    this.session.clipboard = clipboard;
   };
 
   // Paste content from clipboard at current position
-  this.pasteClipboard = function() {
+  this.paste = function() {
+    this.delete();
 
+    // After delete selection we can be sure 
+    // that the collection is collapsed
+    var startNode = this.selection.start[0];
+    var startOffset = this.selection.start[1];
+
+    // This is where the pasting stuff starts
+    var referenceNode = this.selection.getNodes()[0];
+
+    // Nodes from the clipboard to insert
+    var nodes = this.session.clipboard.query(["content", "nodes"]);
+    var ops = []; // operations transforming the original doc
+
+    if (nodes.length > 0) {
+      // Remove trailing stuff
+      _.each(nodes, function(node, index) {
+        // only consider textish nodes for now
+        if (node.content) {
+          if (index === 0) {
+            var trailingText = referenceNode.content.slice(startOffset);
+            var r = [startOffset, -trailingText.length, node.content];
+
+            // remove trailing text from first node at the beginning of the selection
+            ops.push(Data.Graph.Update([referenceNode.id, "content"], ot.TextOperation.fromOT(referenceNode.content, r)));
+
+            // Move the trailing text into a new node
+            var nodeId = util.uuid();
+            ops.push(Data.Graph.Create({
+              id: nodeId,
+              type: "text",
+              content: _.last(nodes).content + trailingText
+            }));
+
+            // and the clipboards content view
+            ops.push(Data.Graph.Update(["content", "nodes"], ot.ArrayOperation.Insert(startNode+index+1, nodeId)));
+          } else if (index === nodes.length-1) {
+            // Skip
+          } else {
+            ops.push(Data.Graph.Create(node));
+            ops.push(Data.Graph.Update(["content", "nodes"], ot.ArrayOperation.Insert(startNode+index, node.id)));
+          }
+        }
+      }, this);
+    } else {
+      ops.push(Data.Graph.Update([referenceNode.id, "content"], ot.TextOperation.Insert(startOffset, node.content)));
+    }
+    this.exec(Data.Graph.Compound(this, ops));
   };
 
-
   // Based on current selection, insert new node
-
   this.insertNode = function(type) {
 
     if (!this.selection.isCollapsed()) {
