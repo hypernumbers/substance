@@ -228,6 +228,7 @@ Session.__prototype__ = function() {
       publications: [], // derive dynamically
       published_at: null, // derive dynamically
     });
+
     this.library.exec(op);
     this.library.exec(Data.Graph.Update(["my_documents", "documents"], ot.ArrayOperation.Insert(0, this.document.id)));
     this.library.observeDocument(this.document);
@@ -503,6 +504,13 @@ Session.prototype = new Session.__prototype__();
 _.extend(Session.prototype, util.Events);
 
 
+// Substance.Session.Document
+// -----------------
+//
+// Extends native Substance.Document for Composer needs
+// E.g. adds support for selections, copy and paste etc.
+// NOTE: No multi user support yet.
+
 Session.Document = function(session, options) {
   Substance.Document.call(this, options);
   this.session = session;
@@ -519,24 +527,8 @@ Session.Document.__prototype__ = function() {
 
   // When a doc changes, bind event handlers etc.
   this.initDoc = function() {
-    this.selections = {};
-
     // Comments view
     this.comments = new Substance.Comments(this);
-
-    // Register user
-    this.users = {};
-    this.users[this.session.user()] = {
-      "color": "#2F2B26",
-      "selection": []
-    };
-
-
-    // this.selections = {
-    //   // "document": new Document.Selection(this, ["content", "nodes"]),
-    //   // "text_26": new Document.Selection(this, ["text_26", "content"]),
-    // };
-
     this.selection = new Document.Range(this, null);
   };
 
@@ -545,48 +537,81 @@ Session.Document.__prototype__ = function() {
     return this.selection;
   };
 
-  // this.selection = function() {
-  //   return this.selection;
-  // };
+  // Cut current selection from document
+  // Cutted content gets stored in clipboard as a new Substance.Document
+  this.cutSelection = function() {
 
-  // this.getSelection = function() {
-  //   return this.selections["document"];
-  // };
+    // Convenience vars
+    var startNode = this.selection.start[0];
+    var startOffset = this.selection.start[1];
+    var endNode = this.selection.end[0];
+    var endOffset = this.selection.end[1];
 
-  // this.getSelection() {
+    var nodes = this.selection.getNodes(this);
+    // var node = nodes[0]; // first node of selection
 
-  // };
+    var ops = []; // operations transforming the original doc
+    var clipboardOps = []; // operations building the new document (clipboard)
 
+    if (nodes.length > 0) {
+      // Remove trailing stuff
+      
+      _.each(nodes, function(node, index) {
+        // only consider textish nodes for now
+        if (n.content) {
+          if (index === 0) {
+            var trailingText = node.content.slice(startOffset);
+            var r = [startOffset, -trailingText.length];
 
-  // CreateEmptyNode
-  this.createEmptyNode = function(type, options) {
-    var selection = this.document.users[this.session.user()].selection;
+            // remove trailing text from first node at the beginning of the selection
+            ops.push(Data.Graph.Update([node.id, "content"], ot.TextOperation.fromOT(node.content, r)));
+            // Add trailing text to clipboard
+            // clipboardOps.push(Data.Graph.Create({
+            //   id: util.uuid(),
+            //   type: "text",
+            //   content: trailingText
+            // }));
+          } else if (index === nodes.length-1) {
+            // Last node of selection
+            // TODO: Implement!
+          } else {
+            // Delete node from document
+            ops.push(Data.Graph.Delete(_.clone(node)));
+            var pos = this.get('content').nodes.indexOf(node.id);
+            // ... and from view
+            ops.push(Data.Graph.Update(["content", "nodes"], ot.ArrayOperation.Delete(pos, node.id)));
 
-    var node = _.last(selection);
+            var nodeId = util.uuid();
+            // Insert node in clipboard document
+            clipboardOps.push(Data.Graph.Create(_.extend(_.clone(node), {id: nodeId})));
+            // ... and view
+            clipboardOps.push(Data.Graph.Update(["content", "nodes"], ot.ArrayOperation.Insert(index, node.id)));
+          }
+        }
+      }, this);
+    } else {
+      // TODO: implement cut within just one node
+    }
 
-    var node = {
-      "id": Substance.util.uuid(type+"_", 8),
-      "type": type
-    };
+    // Trying to use a plain Substance.Document (maybe we need Session.Document here too)
+    this.clipboard = new Substance.Document(this.session, {id: "clipboard-doc"});
 
-    node["content"] = options.content || "";
-    if (type === "heading") node["level"] = 1;
-    this.createNode(node, options);
-
-    // check cases
-    // this.getSelection().getSelection())
-    // var node = this.getSelectedNode();
-
-    // image
-    // var nodeSel = getNodeSelection(node);
-    // 0,1
-
-    // 1. fall insert node after current
-    // nodeSel.lastSelected();
-    // 2. fall insert node before current
-    // 3. fall split node and insert between
+    _.each(clipboardOps, function(op) {
+      this.clipboard.exec(op);
+    }, this);
 
   };
+
+  // Removes current selection from the document
+  this.deleteSelection = function() {
+
+  };
+
+  // Paste content from clipboard at current position
+  this.pasteClipboard = function() {
+
+  };
+
 
   // Based on current selection, insert new node
 
@@ -639,65 +664,6 @@ Session.Document.__prototype__ = function() {
 
     return this;
   };
-
-  // Creates a new node on the document
-  this.createNode = function(node, options) {
-    var view = this.get('content').nodes;
-    var target;
-
-    if (options) {
-      target = view.indexOf(options.target);
-      if (target >= 0 && options.mode !== "front") target += 1;
-    } else {
-      target = -1;
-    }
-
-    // properties["content"] = options.content || "";
-    // if (type === "heading") properties["level"] = 1;
-
-    // var newNode = _.extend(properties, {
-    //   "id": Substance.util.uuid(type+"_", 8),
-    //   "type": type
-    // });
-
-    // 1. Create fresh content node
-    this.document.exec(["create", node]);
-
-    // 2. Position the fresh node
-    this.document.exec(["position", "content", {"nodes": [node.id], "target": target }]);
-  };
-
-  // Select document node(s)
-  // Triggers re-render of comments panel etc.
-  // this.select = function(nodes, options) {
-
-  //   if (!options) options = {};
-  //   var user = this.session.user(); // Use current user by default
-
-  //   // Do nothing if selection hasn't changed
-  //   // It's considered a change if you operate on the same node
-  //   // but change from edit to selection mode (options.edit check)
-  //   if (!this.selectionChanged(user, nodes, !!options.edit)) return;
-
-  //   this.edit = !!options.edit;
-
-  //   if (this.users[user].selection) {
-  //     _.each(this.users[user].selection, function(node) {
-  //       delete this.selections[node];
-  //     }, this);
-  //   }
-
-  //   this.users[user].selection = nodes;
-  //   _.each(nodes, function(node) {
-  //     this.selections[node] = user;
-  //   }, this);
-
-
-  //   // console.log('selected', nodes);
-  //   // New selection leads to new comment context
-  //   this.comments.compute();
-  //   this.trigger('node:selected');
-  // };
 
   this.createPublication = function(network, cb) {
     this.session.client.createPublication(this.id, network, function(err) {
@@ -796,13 +762,13 @@ Session.Document.__prototype__ = function() {
 
   // Returns current navigation level (1..3)
   this.level = function() {
-    var selection = this.users[this.session.user()].selection;
+    var selectedNodes = this.selection.getNodes();
 
     // Edit mode
     if (this.edit) return 3;
 
     // Selection mode (one or more nodes)
-    if (selection.length >= 1) return 2;
+    if (selectedNodes.length >= 1) return 2;
 
     // no selection -> document level
     return 1;
@@ -821,14 +787,7 @@ Session.Document.__prototype__ = function() {
       if (err) return cb(err);
 
       // Update document entry
-      // var collabs = that.session.library.resolve([that.id, "collaborators"]).get();
-      // collabs.push(collaborator);
-      // that.session.library.exec([that.id, "collaborators"], collaborator);
-
       that.session.library.exec(["push", that.id, "collaborators", collaborator]);
-
-      // that.session.library.set([that.id, "collaborators"], collabs);
-
       cb(null);
     });
   };
