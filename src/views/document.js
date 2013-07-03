@@ -559,6 +559,10 @@ TextNodeAdapter.__prototype__ = function() {
     // TODO: delegate to the surface
     this.node.render();
   };
+
+  this.get = function() {
+    return this;
+  };
 };
 TextNodeAdapter.__prototype__.prototype = ot.TextOperation.StringAdapter.prototype;
 TextNodeAdapter.prototype = new TextNodeAdapter.__prototype__();

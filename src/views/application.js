@@ -290,7 +290,7 @@
 
       // Handle backspace
       key('backspace', _.bind(function(e) {
-        this.trigger('message:delete-node', e);
+        this.trigger('message:delete', e);
       }, this));
 
       // Node insertion shortcuts
@@ -330,6 +330,17 @@
         this.trigger('message:get-selection', e);
       }, this));
 
+
+      // Copy/Paste stuff
+      // -------------
+
+      key('⌘+c', _.bind(function(e) {
+        this.trigger('message:copy', e);
+      }, this));
+
+      key('⌘+v', _.bind(function(e) {
+        this.trigger('message:paste', e);
+      }, this));
 
       // Indent / Dedent Headings
       // ----------

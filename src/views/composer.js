@@ -37,8 +37,10 @@
       'go-back': '_goBack',
       'move-down': '_moveDown',
       'move-up': '_moveUp',
+      'copy': '_copy',
+      'paste': '_paste',
       'break-text': '_breakText',
-      'delete-node': '_deleteNode',
+      'delete': '_delete',
       'insert-node': '_insertNode',
       'toggle-annotation': '_toggleAnnotation',
       'get-selection': '_getSelection',
@@ -92,6 +94,20 @@
       }
     },
 
+    // Move current selection down by one
+    _copy: function(e) {
+      console.log('copying..');
+      this.model.document.copy();
+      e.preventDefault();
+    },
+
+    // Move current selection up by one
+    _paste: function(e) {
+      console.log('pasting..');
+      this.model.document.paste();
+      e.preventDefault();
+    },
+
     // Go up one level
     _goBack: function(e) {
       var lvl = this.model.document.level();
@@ -122,11 +138,10 @@
     },
 
     // Delete currently selected nodes
-    _deleteNode: function(e) {
-      if (this.model.document.level() === 2) {
-        this.views.document.deleteNodes();
-        e.preventDefault();
-      }
+    _delete: function(e) {
+      // console.log('deleting');
+      this.model.document.delete();
+      e.preventDefault();
     },
 
     // Insert node based on current selection

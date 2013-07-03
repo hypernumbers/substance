@@ -681,7 +681,9 @@ Session.Document.__prototype__ = function() {
 
   // Paste content from clipboard at current position
   this.paste = function() {
+
     this.delete();
+    if (!this.session.clipboard) return;
 
     // After delete selection we can be sure 
     // that the collection is collapsed
@@ -728,6 +730,7 @@ Session.Document.__prototype__ = function() {
     } else {
       ops.push(Data.Graph.Update([referenceNode.id, "content"], ot.TextOperation.Insert(startOffset, node.content)));
     }
+
     this.exec(Data.Graph.Compound(this, ops));
   };
 
