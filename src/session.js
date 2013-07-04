@@ -539,251 +539,10 @@ Session.Document.__prototype__ = function() {
   this.initDoc = function() {
     // Comments view
     this.comments = new Substance.Comments(this);
-    this.selection = new Document.Range(this, null);
+    // this.selection = new Document.Range(this, null);
   };
 
-  // Make a new selection on the document
-  // --------
 
-  this.select = function(range) {
-    this.selection = new Document.Range(this, range);
-    return this.selection;
-  };
-
-  // Cut current selection from document
-  // --------
-  // 
-  // Cutted content gets stored in clipboard as a new Substance.Document
-
-  this.cut = function() {
-    this.copy();
-    this.delete();
-  };
-
-  // Delete current selection
-  // --------
-  // 
-
-  this.delete = function() {
-    // Convenience vars
-    var startNode = this.selection.start[0];
-    var startOffset = this.selection.start[1];
-    var endNode = this.selection.end[0];
-    var endOffset = this.selection.end[1];
-    var nodes = this.selection.getNodes(this);
-
-    var ops = []; // operations transforming the original doc
-
-    if (nodes.length > 1) {
-
-      // Remove trailing stuff
-      _.each(nodes, function(node, index) {
-        // only consider textish nodes for now
-        if (node.content) {
-          if (index === 0) {
-            var trailingText = node.content.slice(startOffset);
-            var r = [startOffset, -trailingText.length];
-            // remove trailing text from first node at the beginning of the selection
-            ops.push(Data.Graph.Update([node.id, "content"], ot.TextOperation.fromOT(node.content, r)));
-          } else if (index === nodes.length-1) {
-            // Last node of selection
-            var text = node.content.slice(0, endOffset);
-            var r = [-text.length];
-
-            // remove preceding text from last node until the end of the selection
-            ops.push(Data.Graph.Update([node.id, "content"], ot.TextOperation.fromOT(node.content, r)));
-          } else {
-            // Delete node from document
-            ops.push(Data.Graph.Delete(_.clone(node)));
-            var pos = this.get('content').nodes.indexOf(node.id);
-            // ... and from view
-            ops.push(Data.Graph.Update(["content", "nodes"], ot.ArrayOperation.Delete(pos, node.id)));
-          }
-        }
-      }, this);
-    } else {
-      var node = nodes[0];
-      var text = node.content.slice(startOffset, endOffset);
-      var r = [startOffset, -text.length];
-      // remove trailing text from first node at the beginning of the selection
-      ops.push(Data.Graph.Update([node.id, "content"], ot.TextOperation.fromOT(node.content, r)));
-    }
-
-    this.exec(Data.Graph.Compound(this, ops));
-  };
-
-  this.copy = function() {
-    // Convenience vars
-    var startNode = this.selection.start[0];
-    var startOffset = this.selection.start[1];
-    var endNode = this.selection.end[0];
-    var endOffset = this.selection.end[1];
-    var nodes = this.selection.getNodes(this);
-
-    var clipboard = new Substance.Document({id: "clipboard"});
-
-    if (nodes.length > 1) {
-      // Remove trailing stuff
-      _.each(nodes, function(node, index) {
-        // only consider textish nodes for now
-        if (node.content) {
-          if (index === 0) {
-            var trailingText = node.content.slice(startOffset);
-            var r = [startOffset, -trailingText.length];
-
-            // Add trailing text to clipboard
-            var nodeId = util.uuid();
-            clipboard.exec(Data.Graph.Create({
-              id: nodeId,
-              type: "text",
-              content: trailingText
-            }));
-            // and the clipboards content view
-            clipboard.exec(Data.Graph.Update(["content", "nodes"], ot.ArrayOperation.Insert(index, nodeId)));
-          } else if (index === nodes.length-1) {
-            // Last node of selection
-            var text = node.content.slice(0, endOffset);
-            var r = [-text.length];
-
-            // Add selected text from last node to clipboard
-            var nodeId = util.uuid();
-            clipboard.exec(Data.Graph.Create({
-              id: nodeId,
-              type: "text",
-              content: text
-            }));
-            clipboard.exec(Data.Graph.Update(["content", "nodes"], ot.ArrayOperation.Insert(index, nodeId)));
-          } else {
-            var nodeId = util.uuid();
-            // Insert node in clipboard document
-            clipboard.exec(Data.Graph.Create(_.extend(_.clone(node), {id: nodeId})));
-            // ... and view
-            clipboard.exec(Data.Graph.Update(["content", "nodes"], ot.ArrayOperation.Insert(index, nodeId)));
-          }
-        }
-      }, this);
-    } else {
-      var node = nodes[0];
-      var text = node.content.slice(startOffset, endOffset);
-
-      var nodeId = util.uuid();
-      clipboard.exec(Data.Graph.Create({
-        id: nodeId,
-        type: "text",
-        content: text
-      }));
-      clipboard.exec(Data.Graph.Update(["content", "nodes"], ot.ArrayOperation.Insert(0, nodeId)));
-    }
-
-    // Expose clipboard to session
-    this.session.clipboard = clipboard;
-  };
-
-  // Paste content from clipboard at current position
-  this.paste = function() {
-
-    this.delete();
-    if (!this.session.clipboard) return;
-
-    // After delete selection we can be sure 
-    // that the collection is collapsed
-    var startNode = this.selection.start[0];
-    var startOffset = this.selection.start[1];
-
-    // This is where the pasting stuff starts
-    var referenceNode = this.selection.getNodes()[0];
-
-    // Nodes from the clipboard to insert
-    var nodes = this.session.clipboard.query(["content", "nodes"]);
-    var ops = []; // operations transforming the original doc
-
-    if (nodes.length > 0) {
-      // Remove trailing stuff
-      _.each(nodes, function(node, index) {
-        // only consider textish nodes for now
-        if (node.content) {
-          if (index === 0) {
-            var trailingText = referenceNode.content.slice(startOffset);
-            var r = [startOffset, -trailingText.length, node.content];
-
-            // remove trailing text from first node at the beginning of the selection
-            ops.push(Data.Graph.Update([referenceNode.id, "content"], ot.TextOperation.fromOT(referenceNode.content, r)));
-
-            // Move the trailing text into a new node
-            var nodeId = util.uuid();
-            ops.push(Data.Graph.Create({
-              id: nodeId,
-              type: "text",
-              content: _.last(nodes).content + trailingText
-            }));
-
-            // and the clipboards content view
-            ops.push(Data.Graph.Update(["content", "nodes"], ot.ArrayOperation.Insert(startNode+index+1, nodeId)));
-          } else if (index === nodes.length-1) {
-            // Skip
-          } else {
-            ops.push(Data.Graph.Create(node));
-            ops.push(Data.Graph.Update(["content", "nodes"], ot.ArrayOperation.Insert(startNode+index, node.id)));
-          }
-        }
-      }, this);
-    } else {
-      ops.push(Data.Graph.Update([referenceNode.id, "content"], ot.TextOperation.Insert(startOffset, node.content)));
-    }
-
-    this.exec(Data.Graph.Compound(this, ops));
-  };
-
-  // Based on current selection, insert new node
-  this.insertNode = function(type) {
-
-    if (!this.selection.isCollapsed()) {
-      throw new Error('Not yet implemented for actual ranges');
-    }
-
-    var nodes = this.selection.getNodes(this);
-    var node = nodes[0];
-
-    var ops = [];
-
-    // Remove the selection
-    // TODO: implement
-
-    // Remove trailing stuff
-    var nodePos = this.selection.start[0];
-    var cursorPos = this.selection.start[1];
-    var trailingText = node.content.slice(cursorPos);
-
-    if (trailingText.length > 0) {
-      var r = [cursorPos, -trailingText.length];
-      ops.push(Data.Graph.Update([node.id, "content"], ot.TextOperation.fromOT(node.content, r)));
-    }
-
-    var id1 = type+"_"+util.uuid();
-    var id2 = "text_"+util.uuid();
-
-    // Insert new node for trailingText
-    if (trailingText.length > 0) {
-      ops.push(Data.Graph.Create({
-        id: id2,
-        type: "text",
-        content: trailingText
-      }));
-      ops.push(Data.Graph.Update(["content", "nodes"], ot.ArrayOperation.Insert(nodePos+1, id2)));
-    }
-
-    // Insert new empty node
-    ops.push(Data.Graph.Create({
-      id: id1,
-      type: type
-    }));
-    ops.push(Data.Graph.Update(["content", "nodes"], ot.ArrayOperation.Insert(nodePos+1, id1)));
-
-    // Execute all steps at once
-    this.exec(Data.Graph.Compound(this, ops));
-
-    return this;
-  };
 
   this.createPublication = function(network, cb) {
     this.session.client.createPublication(this.id, network, function(err) {
@@ -857,6 +616,7 @@ Session.Document.__prototype__ = function() {
   };
 
   // Checks if selection has actually changed for a user
+  // TODO: still needed?
   this.selectionChanged = function(user, nodes, edit) {
     // this.edit remembers the previous selection/edit state
     return !_.isEqual(nodes, this.selection(user)) || edit !== this.edit;
@@ -870,29 +630,29 @@ Session.Document.__prototype__ = function() {
 
   // Returns the node id of current active node
   // Only works if there's just one node selected
-  this.node = function() {
-    var lvl = this.level(),
-        selectedNodes = this.selection.getNodes();
+  // this.node = function() {
+  //   var lvl = this.level(),
+  //       selectedNodes = this.selection.getNodes();
 
 
-    if (lvl >= 2 && selectedNodes.length ) {
-      return selectedNodes[0];
-    }
-  };
+  //   if (lvl >= 2 && selectedNodes.length ) {
+  //     return selectedNodes[0];
+  //   }
+  // };
 
   // Returns current navigation level (1..3)
-  this.level = function() {
-    var selectedNodes = this.selection.getNodes();
+  // this.level = function() {
+  //   var selectedNodes = this.selection.getNodes();
 
-    // Edit mode
-    if (this.edit) return 3;
+  //   // Edit mode
+  //   if (this.edit) return 3;
 
-    // Selection mode (one or more nodes)
-    if (selectedNodes.length >= 1) return 2;
+  //   // Selection mode (one or more nodes)
+  //   if (selectedNodes.length >= 1) return 2;
 
-    // no selection -> document level
-    return 1;
-  };
+  //   // no selection -> document level
+  //   return 1;
+  // };
 
 
   // Create new collaborator on the server
@@ -944,16 +704,16 @@ Substance.Comments = function(document) {
 
 _.extend(Substance.Comments.prototype, _.Events, {
   compute: function(scope) {
-    var node = this.document.node();
+    // var node = this.document.node();
     this.scopes = [];
 
-    var content, annotations;
-    if (node) {
-      var nodeData = this.document.nodes[node];
-      content = nodeData.content;
-      annotations = this.document.find('annotations', node);
-    }
-    this.commentsForNode(this.document, node, content, annotations, scope);
+    // var content, annotations;
+    // if (node) {
+    //   var nodeData = this.document.nodes[node];
+    //   content = nodeData.content;
+    //   annotations = this.document.find('annotations', node);
+    // }
+    // this.commentsForNode(this.document, node, content, annotations, scope);
   },
 
   // Based on a new set of annotations (during editing)
@@ -965,47 +725,47 @@ _.extend(Substance.Comments.prototype, _.Events, {
       return _.include(["idea", "question", "error"], a.type);
     });
 
-    this.commentsForNode(this.document, node, content, annotations);
+    // this.commentsForNode(this.document, node, content, annotations);
   },
 
   commentsForNode: function(document, node, content, annotations, scope) {
     this.scopes = [];
 
     // Extract annotation text from the model
-    function annotationText(a) {
-      if (!a.pos) return "No pos";
-      return content.substr(a.pos[0], a.pos[1]);
-    }
-
-    if (node) {
-      this.scopes.push({
-        name: "Node",
-        type: "node",
-        id: "node_comments",
-        comments: document.find('comments', node)
-      });
-
-      _.each(annotations, function(a) {
-        if (_.include(["idea", "question", "error"], a.type)) {
-          this.scopes.push({
-            name: annotationText(a),
-            type: a.type,
-            annotation: a.id,
-            id: a.id,
-            comments: document.find('comments', a.id)
-          });
-        }
-      }, this);
-    } // else {
-      // No document scopes for now
-      // this.scopes.push({
-      //   id: "document_comments",
-      //   name: "Document",
-      //   type: "document",
-      //   comments: []
-      // });
+    // function annotationText(a) {
+    //   if (!a.pos) return "No pos";
+    //   return content.substr(a.pos[0], a.pos[1]);
     // }
-    this.document.trigger('comments:updated', scope);
+
+    // if (node) {
+    //   this.scopes.push({
+    //     name: "Node",
+    //     type: "node",
+    //     id: "node_comments",
+    //     comments: document.find('comments', node)
+    //   });
+
+    //   _.each(annotations, function(a) {
+    //     if (_.include(["idea", "question", "error"], a.type)) {
+    //       this.scopes.push({
+    //         name: annotationText(a),
+    //         type: a.type,
+    //         annotation: a.id,
+    //         id: a.id,
+    //         comments: document.find('comments', a.id)
+    //       });
+    //     }
+    //   }, this);
+    // } // else {
+    //   // No document scopes for now
+    //   // this.scopes.push({
+    //   //   id: "document_comments",
+    //   //   name: "Document",
+    //   //   type: "document",
+    //   //   comments: []
+    //   // });
+    // // }
+    // this.document.trigger('comments:updated', scope);
   }
 });
 

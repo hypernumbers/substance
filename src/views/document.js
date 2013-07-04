@@ -124,7 +124,7 @@ var DocumentView = Substance.View.extend({
 
     // Render context bar
     this.$('#context_bar').html(_.tpl('context_bar', {
-      level: this.document.level(),
+      // level: this.document.level(),
       // TODO: Use Plugin System!
       node_types: [
         { name: "Heading", type: "heading" },
@@ -155,73 +155,73 @@ var DocumentView = Substance.View.extend({
   // --------
   //
 
-  selectNext: function() {
-    var selection = this.document.users[this.session.user()].selection;
-    var nodes = this.document.get('content').nodes;
-    if (selection.length === 0) return this.document.select([_.first(nodes)]);
+  // selectNext: function() {
+  //   var selection = this.document.users[this.session.user()].selection;
+  //   var nodes = this.document.get('content').nodes;
+  //   if (selection.length === 0) return this.document.select([_.first(nodes)]);
 
-    var nextPos = this.getSuccessor(_.last(selection));
-    if (nextPos !== null) return this.document.select([this.getId(nextPos)]);
-  },
+  //   var nextPos = this.getSuccessor(_.last(selection));
+  //   if (nextPos !== null) return this.document.select([this.getId(nextPos)]);
+  // },
 
   // Select previous node
   // --------
   //
 
-  selectPrev: function() {
-    var selection = this.document.users[this.session.user()].selection;
-    var nodes = this.document.get('content').nodes;
-    if (selection.length === 0) return this.document.select([_.last(nodes)]);
-    var prevPos = this.getPredecessor(_.last(selection));
-    if (prevPos !== null) return this.document.select([this.getId(prevPos)]);
-  },
+  // selectPrev: function() {
+  //   var selection = this.document.users[this.session.user()].selection;
+  //   var nodes = this.document.get('content').nodes;
+  //   if (selection.length === 0) return this.document.select([_.last(nodes)]);
+  //   var prevPos = this.getPredecessor(_.last(selection));
+  //   if (prevPos !== null) return this.document.select([this.getId(prevPos)]);
+  // },
 
   // Expand current selection
   // --------
   //
 
-  expandSelection: function() {
-    var selection = this.document.users[this.session.user()].selection;
-    var lastnode = _.last(selection);
-    var doc = this.document;
+  // expandSelection: function() {
+  //   var selection = this.document.users[this.session.user()].selection;
+  //   var lastnode = _.last(selection);
+  //   var doc = this.document;
 
-    if (lastnode) {
-      var next = this.getId(this.getSuccessor(lastnode));
-      if (next) {
-        this.document.select(selection.concat([next]));
-      }
-    }
-  },
+  //   if (lastnode) {
+  //     var next = this.getId(this.getSuccessor(lastnode));
+  //     if (next) {
+  //       this.document.select(selection.concat([next]));
+  //     }
+  //   }
+  // },
 
   // Narrow current selection
   // --------
   //
 
-  narrowSelection: function() {
-    var selection = this.document.users[this.session.user()].selection;
-    this.document.select(_.clone(selection).splice(0, selection.length-1));
-  },
+  // narrowSelection: function() {
+  //   var selection = this.document.users[this.session.user()].selection;
+  //   this.document.select(_.clone(selection).splice(0, selection.length-1));
+  // },
 
 
   // Move selection down by one
   // --------
   //
 
-  moveDown: function() {
-    var selection = this.document.users[this.session.user()].selection;
-    var target = this.getSuccessor(_.last(selection));
-    if (target !== null) this.document.exec(["position", "content", {"nodes": selection, "target": target}]);
-  },
+  // moveDown: function() {
+  //   var selection = this.document.users[this.session.user()].selection;
+  //   var target = this.getSuccessor(_.last(selection));
+  //   if (target !== null) this.document.exec(["position", "content", {"nodes": selection, "target": target}]);
+  // },
 
   // Move selection up by one
   // --------
   //
 
-  moveUp: function() {
-    var selection = this.document.users[this.session.user()].selection;
-    var target = this.getPredecessor(_.first(selection));
-    if (target !== null) this.document.exec(["position", "content", {"nodes": selection, "target": target}]);
-  },
+  // moveUp: function() {
+  //   var selection = this.document.users[this.session.user()].selection;
+  //   var target = this.getPredecessor(_.first(selection));
+  //   if (target !== null) this.document.exec(["position", "content", {"nodes": selection, "target": target}]);
+  // },
 
 
   // Select a node
@@ -310,92 +310,6 @@ var DocumentView = Substance.View.extend({
     return nodes[pos];
   },
 
-
-  // Handle for cover image upload
-  // --------
-  //
-
-  // handleFileSelect: function(evt) {
-  //   var that = this;
-  //   evt.stopPropagation();
-  //   evt.preventDefault();
-
-  //   // from an input element
-  //   var filesToUpload = evt.target.files;
-  //   var file = filesToUpload[0];
-
-  //   // this.message('Processing Image ...');
-
-  //   // TODO: display error message
-  //   if (!file.type.match('image.*')) return /*this.message('Not an image. Skipping ...')*/;
-
-  //   var img = document.createElement("img");
-  //   var reader = new FileReader();
-
-  //   reader.onload = function(e) {
-  //     img.src = e.target.result;
-  //     var largeImage = img.src;
-
-  //     _.delay(function() {
-  //       var canvas = document.getElementById('canvas');
-  //       var ctx = canvas.getContext("2d");
-  //       ctx.drawImage(img, 0, 0);
-
-  //       var MAX_WIDTH = 2000;
-  //       var MAX_HEIGHT = 3000;
-  //       var width = img.width;
-  //       var height = img.height;
-
-  //       if (width > height) {
-  //         if (width > MAX_WIDTH) {
-  //           height *= MAX_WIDTH / width;
-  //           width = MAX_WIDTH;
-  //         }
-  //       } else {
-  //         if (height > MAX_HEIGHT) {
-  //           width *= MAX_HEIGHT / height;
-  //           height = MAX_HEIGHT;
-  //         }
-  //       }
-  //       canvas.width = width;
-  //       canvas.height = height;
-  //       ctx = canvas.getContext("2d");
-  //       ctx.drawImage(img, 0, 0, width, height);
-
-  //       var mediumImage = canvas.toDataURL("image/png");
-  //       var mediumImageId = Substance.util.uuid();
-  //       var largeImageId = Substance.util.uuid();
-
-  //       if (!this.session.localStore.createBlob(that.model.document.id, mediumImageId, mediumImage) ||
-  //           !this.session.localStore.createBlob(that.model.document.id, largeImageId, largeImage)) {
-  //         throw new Substance.errors.Error('Storing images failed');
-  //       }
-
-  //       that.model.document.apply(["set", {
-  //         "cover_medium": mediumImageId,
-  //         "cover_large": largeImageId,
-  //       }]);
-
-  //       that.render(); // re-render the shit out of it
-
-  //     }, 800);
-  //   };
-
-  //   reader.readAsDataURL(file);
-  // },
-
-  // Handle for cover image upload
-  // --------
-  //
-
-  // bindFileEvents: function() {
-  //   var that = this;
-  //   _.delay(function() {
-  //     that.$('.cover-file').bind('change', function(e) {
-  //       that.handleFileSelect(e);
-  //     });
-  //   }, 200);
-  // },
 
   // Initial view construction
   // --------
