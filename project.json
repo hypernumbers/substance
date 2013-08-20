@@ -38,7 +38,7 @@
     {
       "repository": "https://github.com/substance/document.git",
       "folder": "node_modules/substance-document",
-      "branch": "0.5.x"
+      "branch": "nested_nodes"
     },
     {
       "repository": "https://github.com/substance/operator.git",
@@ -88,7 +88,7 @@
     {
       "repository": "https://github.com/substance/substance.git",
       "folder": ".",
-      "branch": "0.5.x"
+      "branch": "nested_nodes"
     }
   ],
   "node_modules": {
