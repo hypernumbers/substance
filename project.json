@@ -23,7 +23,7 @@
     {
       "repository": "https://github.com/substance/converter.git",
       "folder": "node_modules/substance-converter",
-      "branch": "recursive_descent"
+      "branch": "nested_nodes"
     },
     {
       "repository": "https://github.com/substance/data.git",
