@@ -22,10 +22,9 @@
         "paragraph_1",
         "heading_1",
         "codeblock_2",
-        "image_1",
+        "figure_1",
         "paragraph_3",
-        "paragraph_4",
-        "paragraph_5"
+        "list_1"
       ]
     },
     "figures": {
@@ -52,8 +51,18 @@
     "image_1": {
       "type": "image",
       "id": "image_1",
-      "caption": "caption_1",
       "url": "http://i.telegraph.co.uk/multimedia/archive/02429/eleanor_scriven_2429776k.jpg"
+    },
+    "caption_1": {
+      "id": "caption_1",
+      "type": "paragraph",
+      "content": "Hello I am an image caption"
+    },
+    "figure_1": {
+      "type": "figure",
+      "id": "figure_1",
+      "image": "image_1",
+      "caption": "caption_1"
     },
     "codeblock_2": {
       "type": "codeblock",
@@ -75,6 +84,12 @@
       "id": "paragraph_5",
       "content": "Maecenas tincidunt purus quis leo posuere, eu venenatis magna placerat. Sed vestibulum eros in pulvinar ornare. Nam arcu urna, dignissim a mi id, euismod consequat mi. Nam varius metus elit, sagittis rutrum elit cursus non. Integer ut euismod ligula. Pellentesque habitant morbi tristique senectus et netus et malesuada fames ac turpis egestas. Nam a sapien vehicula, vestibulum lorem ac, condimentum elit. Donec gravida tortor sit amet molestie sollicitudin."
     },
+    "list_1": {
+      "id": "list_1",
+      "type": "list",
+      "level": 1,
+      "items": ["paragraph_4", "paragraph_5"]
+    },
     "idea_1": {
       "id":"idea_1",
       "type":"idea",
@@ -86,11 +101,6 @@
       "type":"question",
       "path": ["paragraph_1", "content"],
       "range":[150,176]
-    },
-    "caption_1": {
-      "id": "caption_1",
-      "type": "paragraph",
-      "content": "Hello I am an image caption"
     },
     "idea_in_caption": {
       "id":"idea_in_caption",
@@ -104,6 +114,18 @@
       "path": ["paragraph_1", "content"],
       "url": "http://lorem.com",
       "range":[209,218]
+    },
+    "idea_2": {
+      "id":"idea_2",
+      "type":"idea",
+      "path": ["paragraph_4", "content"],
+      "range":[4,19]
+    },
+    "question_3": {
+      "id":"question_3",
+      "type":"question",
+      "path": ["paragraph_5", "content"],
+      "range":[50, 76]
     }
   }
 }
