@@ -8,7 +8,7 @@
     {
       "repository": "https://github.com/substance/article.git",
       "folder": "node_modules/substance-article",
-      "branch": "0.1.x"
+      "branch": "extract_nodes"
     },
     {
       "repository": "https://github.com/substance/chronicle.git",
@@ -38,7 +38,7 @@
     {
       "repository": "https://github.com/substance/document.git",
       "folder": "node_modules/substance-document",
-      "branch": "0.5.x"
+      "branch": "extract_nodes"
     },
     {
       "repository": "https://github.com/substance/nodes.git",
